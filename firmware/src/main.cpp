@@ -1,4 +1,6 @@
 #include <FastLED.h>
+#include <PubSubClient.h>
+#include <WiFiManager.h>
 
 #define LED_STRIP_1_PIN 33
 #define LED_STRIP_2_PIN 23
@@ -17,12 +19,20 @@ CRGB led_strip_5[NUM_LEDS];
 CRGB led_strip_6[NUM_LEDS];
 
 void setup() {
+  WiFi.mode(WIFI_STA);
+  WiFiManager wm;
+
   FastLED.addLeds<WS2812, LED_STRIP_1_PIN, GRB>(led_strip_1, NUM_LEDS);
   FastLED.addLeds<WS2812, LED_STRIP_2_PIN, GRB>(led_strip_2, NUM_LEDS);
   FastLED.addLeds<WS2812, LED_STRIP_3_PIN, GRB>(led_strip_3, NUM_LEDS);
   FastLED.addLeds<WS2812, LED_STRIP_4_PIN, GRB>(led_strip_4, NUM_LEDS);
   FastLED.addLeds<WS2812, LED_STRIP_5_PIN, GRB>(led_strip_5, NUM_LEDS);
   FastLED.addLeds<WS2812, LED_STRIP_6_PIN, GRB>(led_strip_6, NUM_LEDS);
+
+  srand(time(0));
+  if (!wm.autoConnect("warehouse-locator-" + rand(), "password")) {
+    ESP.restart();
+  }
 }
 
 void loop() {
