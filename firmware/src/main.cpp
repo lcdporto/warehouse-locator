@@ -34,6 +34,31 @@ WiFiManagerParameter custom_mqtt_pass("mqttpass", "MQTT password", "pass", 16);
 
 String device_id = "";
 
+WiFiManager wm;
+WiFiClient wifi_client;
+PubSubClient mqtt(wifi_client);
+
+void mqtt_receive(char *topic, byte *payload, unsigned int length) {
+  log_d("Message arrived [" + topic + "]");
+  led_strip_1[1] = CRGB(255, 255, 255);
+  FastLED.show();
+}
+
+bool mqtt_connect() {
+  if (mqtt.connected())
+    return true;
+
+  bool status = mqtt.connect(device_id.c_str(), custom_mqtt_user.getValue(),
+                             custom_mqtt_pass.getValue());
+
+  if (status == false) {
+    return false;
+  }
+  mqtt.subscribe((MQTT_TOPIC_PREFIX + device_id + "/").c_str());
+
+  return mqtt.connected();
+}
+
 void saveParamsCallback() {
   StaticJsonDocument<200> json;
   json["device_id"] = device_id;
@@ -69,9 +94,8 @@ void setup() {
   FastLED.addLeds<WS2812, LED_STRIP_5_PIN, GRB>(led_strip_5, NUM_LEDS);
   FastLED.addLeds<WS2812, LED_STRIP_6_PIN, GRB>(led_strip_6, NUM_LEDS);
 
-  SPIFFS.begin();
+  SPIFFS.begin(true);
   WiFi.mode(WIFI_STA);
-  WiFiManager wm;
 
   if (SPIFFS.exists("/config.json")) {
     fs::File configFile = SPIFFS.open("/config.json", "r");
@@ -122,15 +146,15 @@ void setup() {
   wm.setSaveParamsCallback(saveParamsCallback);
   wm.setTitle("Warehouse Locator");
 
-  if (!wm.autoConnect(device_id.c_str(), "lcdporto")) {
-    ESP.restart();
-  }
+  wm.autoConnect("LALA", "lcdporto");
+
+  mqtt.setServer(custom_mqtt_server.getValue(),
+                 atoi(custom_mqtt_port.getValue()));
+  // mqtt.setCallback(mqtt_receive);
 }
 
-unsigned long btn_pressed = 0;
-
 void loop() {
-  for (uint8_t i = 0; i < 300; i += 19) {
+  for (uint8_t i = 0; i < 7 * 20; i += 19) {
     for (uint8_t j = 0; j < 19; j++) {
       led_strip_1[i + j] = CRGB(255, 255, 255);
     }
@@ -141,11 +165,6 @@ void loop() {
     }
   }
 
-  if (digitalRead(RESET_BTN_PIN) == HIGH) {
-    btn_pressed = millis();
-  }
-  if (millis() - btn_pressed > RESET_HOLD_DURATION * 1000) {
-    SPIFFS.format();
-    ESP.restart();
-  }
+  mqtt_connect();
+  mqtt.loop();
 }
