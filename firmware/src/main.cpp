@@ -32,14 +32,14 @@ WiFiManagerParameter custom_mqtt_port("mqttport", "MQTT server port", "1883",
 WiFiManagerParameter custom_mqtt_user("mqttuser", "MQTT username", "user", 16);
 WiFiManagerParameter custom_mqtt_pass("mqttpass", "MQTT password", "pass", 16);
 
-String device_id = "";
+char device_id[64];
 
 WiFiManager wm;
 WiFiClient wifi_client;
 PubSubClient mqtt(wifi_client);
 
 void mqtt_receive(char *topic, byte *payload, unsigned int length) {
-  log_d("Message arrived [" + topic + "]");
+  log_d("Message arrived [%s]", topic);
   led_strip_1[1] = CRGB(255, 255, 255);
   FastLED.show();
 }
@@ -48,20 +48,21 @@ bool mqtt_connect() {
   if (mqtt.connected())
     return true;
 
-  bool status = mqtt.connect(device_id.c_str(), custom_mqtt_user.getValue(),
+  bool status = mqtt.connect(device_id, custom_mqtt_user.getValue(),
                              custom_mqtt_pass.getValue());
 
   if (status == false) {
     return false;
   }
-  mqtt.subscribe((MQTT_TOPIC_PREFIX + device_id + "/").c_str());
+  char topic[32];
+  sprintf(topic, "%s%s/", MQTT_TOPIC_PREFIX, device_id);
+  mqtt.subscribe(topic);
 
   return mqtt.connected();
 }
 
 void saveParamsCallback() {
   StaticJsonDocument<200> json;
-  json["device_id"] = device_id;
   json["mqtt_server"] = strlen(custom_mqtt_server.getValue()) == 0
                             ? "server"
                             : custom_mqtt_server.getValue();
@@ -78,7 +79,7 @@ void saveParamsCallback() {
   fs::File configFile = SPIFFS.open("/config.json", "w");
 
   char json_pretty[250];
-  serializeJsonPretty(json, json_pretty);
+  serializeJson(json, json_pretty);
   log_d("%s", json_pretty);
 
   serializeJson(json, configFile);
@@ -97,6 +98,23 @@ void setup() {
   SPIFFS.begin(true);
   WiFi.mode(WIFI_STA);
 
+  if (SPIFFS.exists("/device_id.txt")) {
+    fs::File device_id_file = SPIFFS.open("/device_id.txt", "r");
+
+    strcpy(device_id, device_id_file.readString().c_str());
+
+    device_id_file.close();
+
+  } else {
+    fs::File device_id_file = SPIFFS.open("/device_id.txt", "w");
+
+    srand(time(0));
+    sprintf(device_id, "warehouse-locator-%d", rand());
+    device_id_file.print(device_id);
+
+    device_id_file.close();
+  }
+
   if (SPIFFS.exists("/config.json")) {
     fs::File configFile = SPIFFS.open("/config.json", "r");
     DynamicJsonDocument json(configFile.size() * 2);
@@ -104,9 +122,6 @@ void setup() {
     if (deserialization_error) {
       SPIFFS.format();
       ESP.restart();
-    }
-    if (json.containsKey("device_id")) {
-      device_id = String((const char *)json["device_id"]);
     }
 
     if (json.containsKey("mqtt_server")) {
@@ -126,17 +141,6 @@ void setup() {
     }
 
     configFile.close();
-  } else {
-    fs::File configFile = SPIFFS.open("/config.json", "w");
-
-    StaticJsonDocument<200> json;
-
-    srand(time(0));
-    device_id = "warehouse-locator-" + rand();
-    json["device_id"] = device_id;
-    serializeJson(json, configFile);
-
-    configFile.close();
   }
 
   wm.addParameter(&custom_mqtt_server);
@@ -146,7 +150,7 @@ void setup() {
   wm.setSaveParamsCallback(saveParamsCallback);
   wm.setTitle("Warehouse Locator");
 
-  wm.autoConnect("LALA", "lcdporto");
+  wm.autoConnect(device_id, "lcdporto");
 
   mqtt.setServer(custom_mqtt_server.getValue(),
                  atoi(custom_mqtt_port.getValue()));
