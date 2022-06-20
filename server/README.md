@@ -4,7 +4,7 @@ The server is simply a MQTT broker. To setup the server you need to install [Doc
 
 Because this will be a publicly accessible MQT broker,before you run the server, you need to define its access credentials. For that create a file inside the folder ```mosquitto``` called ```mosquitto.passwd``` with your user and password separated by a colon, here is an example:
 ```
-lcdporto:very-strong-passwrd
+lcdporto:very-strong-password
 ```
 Then you are ready to start the server:
 
