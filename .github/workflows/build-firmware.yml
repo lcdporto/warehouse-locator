@@ -1,0 +1,60 @@
+name: Firmware build and publish
+
+on:
+  push:
+    paths:
+      - "firmware/**"
+  pull_request:
+    paths:
+      - "firmware/**"
+  release:
+    types: [published]
+  workflow_dispatch:
+
+jobs:
+  compile:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          submodules: "recursive"
+      - name: Cache pip
+        uses: actions/cache@v2
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+
+      - name: Cache PlatformIO
+        uses: actions/cache@v2
+        with:
+          path: ~/.platformio
+          key: ${{ runner.os }}-${{ hashFiles('**/lockfiles') }}
+
+      - name: Set up Python
+        uses: actions/setup-python@v2
+
+      - name: Install PlatformIO
+        run: |
+          python -m pip install --upgrade pip
+          pip install --upgrade platformio
+
+      - name: Run PlatformIO
+        id: compile
+        run: |
+          cd firmware
+          pio run
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v2
+        with:
+          name: firmware
+          path: ./firmware/.pio/build/dev/firmware.bin
+
+      - name: Upload Artifacts to Release
+        uses: softprops/action-gh-release@v1
+        if: github.event_name == 'release'
+        with:
+          files: |
+            ./firmware/.pio/build/dev/firmware.bin
