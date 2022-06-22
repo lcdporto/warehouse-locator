@@ -15,9 +15,6 @@
 #define NUM_LEDS 144 * 5
 #define NUM_STRIPS 6
 
-#define RESET_BTN_PIN 39
-#define RESET_HOLD_DURATION 5 // seconds
-
 #define MQTT_TOPIC_PREFIX "warehouse-locator/"
 
 char device_id[11] = "";
