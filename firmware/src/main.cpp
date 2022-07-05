@@ -5,8 +5,8 @@
 #include <WiFi.h>
 #include <WiFiManager.h>
 
-#define LED_STRIP_1_PIN 33
-#define LED_STRIP_2_PIN 23
+#define LED_STRIP_1_PIN 19
+#define LED_STRIP_2_PIN 22
 #define LED_STRIP_3_PIN 19
 #define LED_STRIP_4_PIN 22
 #define LED_STRIP_5_PIN 21
@@ -97,7 +97,7 @@ void setup() {
   FastLED.addLeds<WS2812, LED_STRIP_5_PIN, GRB>(led_strips[4], NUM_LEDS);
   FastLED.addLeds<WS2812, LED_STRIP_6_PIN, GRB>(led_strips[5], NUM_LEDS);
 
-  SPIFFS.begin(true);
+  SPIFFS.begin();
   WiFi.mode(WIFI_STA);
 
   if (SPIFFS.exists("/device_id.txt")) {
@@ -120,11 +120,10 @@ void setup() {
   wm.setTitle("Warehouse Locator");
 
   char portal_ssid[32] = "";
-  sprintf(portal_ssid, "warehouse-locator-%u", device_id);
-
-  wm.autoConnect(portal_ssid, "lcdporto");
+  sprintf(portal_ssid, "warehouse-locator-%s", device_id);
 
   if (SPIFFS.exists("/config.json")) {
+    log_d("Config JSON found");
     fs::File configFile = SPIFFS.open("/config.json", "r");
     DynamicJsonDocument json(configFile.size() * 2);
     auto deserialization_error = deserializeJson(json, configFile);
@@ -151,8 +150,11 @@ void setup() {
 
     configFile.close();
   } else {
+    log_d("Config JSON not found");
     wm.startConfigPortal(portal_ssid, "lcdporto");
   }
+
+  wm.autoConnect(portal_ssid);
 
   mqtt.setServer(custom_mqtt_server.getValue(),
                  atoi(custom_mqtt_port.getValue()));
