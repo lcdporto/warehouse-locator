@@ -4,8 +4,8 @@
 #include <SPIFFS.h>
 #include <WiFiManager.h>
 
-#define LED_STRIP_1_PIN 19
-#define LED_STRIP_2_PIN 22
+#define LED_STRIP_1_PIN 15
+#define LED_STRIP_2_PIN 16
 #define LED_STRIP_3_PIN 19
 #define LED_STRIP_4_PIN 22
 #define LED_STRIP_5_PIN 21
