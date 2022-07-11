@@ -15,6 +15,9 @@
 #define NUM_LEDS 144 * 5
 #define NUM_STRIPS 6
 
+#define CONFIG_FILE_PATH "/dev-config.json"
+#define ID_FILE_PATH "/dev-config.json"
+
 #define MQTT_TOPIC_PREFIX "warehouse-locator/"
 
 char device_id[11] = "";
@@ -78,7 +81,7 @@ void saveParamsCallback() {
                           ? "pass"
                           : custom_mqtt_pass.getValue();
 
-  fs::File configFile = SPIFFS.open("/config.json", "w");
+  fs::File configFile = SPIFFS.open(CONFIG_FILE_PATH, "w");
 
   char json_pretty[250];
   serializeJson(json, json_pretty);
@@ -100,12 +103,12 @@ void setup() {
   SPIFFS.begin();
   WiFi.mode(WIFI_STA);
 
-  if (SPIFFS.exists("/device_id.txt")) {
-    fs::File device_id_file = SPIFFS.open("/device_id.txt", "r");
+  if (SPIFFS.exists(ID_FILE_PATH)) {
+    fs::File device_id_file = SPIFFS.open(ID_FILE_PATH, "r");
     device_id_file.readBytes(device_id, 11);
     device_id_file.close();
   } else {
-    fs::File device_id_file = SPIFFS.open("/device_id.txt", "w");
+    fs::File device_id_file = SPIFFS.open(ID_FILE_PATH, "w");
     sprintf(device_id, "%u", esp_random());
     device_id_file.print(device_id);
     device_id_file.close();
@@ -122,9 +125,8 @@ void setup() {
   char portal_ssid[32] = "";
   sprintf(portal_ssid, "warehouse-locator-%s", device_id);
 
-  if (SPIFFS.exists("/config.json")) {
-    log_d("Config JSON found");
-    fs::File configFile = SPIFFS.open("/config.json", "r");
+  if (SPIFFS.exists(CONFIG_FILE_PATH)) {
+    fs::File configFile = SPIFFS.open(CONFIG_FILE_PATH, "r");
     DynamicJsonDocument json(configFile.size() * 2);
     auto deserialization_error = deserializeJson(json, configFile);
     if (deserialization_error) {
