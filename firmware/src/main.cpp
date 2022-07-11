@@ -66,7 +66,7 @@ bool mqtt_connect() {
   return mqtt.connected();
 }
 
-void saveParamsCallback() {
+void saveConfigCallback() {
   StaticJsonDocument<200> json;
   json["mqtt_server"] = strlen(custom_mqtt_server.getValue()) == 0
                             ? "server"
@@ -119,7 +119,7 @@ void setup() {
   wm.addParameter(&custom_mqtt_port);
   wm.addParameter(&custom_mqtt_user);
   wm.addParameter(&custom_mqtt_pass);
-  wm.setSaveParamsCallback(saveParamsCallback);
+  wm.setSaveConfigCallback(saveConfigCallback);
   wm.setTitle("Warehouse Locator");
 
   char portal_ssid[32] = "";
