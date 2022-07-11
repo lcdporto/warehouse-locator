@@ -33,10 +33,10 @@ The firmware was developed using PlatformIO which can be found on the ```firmwar
 
 ### `warehouse-locator/<deviceId>/<strip-id>/<led-id>`
 
-```json
+```
 on
 ```
 or
-```json
+```
 off
 ```
