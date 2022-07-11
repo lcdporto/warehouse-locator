@@ -65,6 +65,8 @@ bool mqtt_connect() {
   sprintf(topic, "%s%s/+/+", MQTT_TOPIC_PREFIX, device_id);
   mqtt.subscribe(topic);
 
+  log_i("Connected to MQTT server: %s:%s", custom_mqtt_server.getValue(),
+        custom_mqtt_port.getValue());
   return mqtt.connected();
 }
 
@@ -167,12 +169,13 @@ void setup() {
     delay(500);
     log_d("Failed to connect to MQTT. Retrying...");
   }
-  log_i("Connected to MQTT server: %s:%s", custom_mqtt_server.getValue(),
-        custom_mqtt_port.getValue());
 
   char topic[64];
   sprintf(topic, "%s%s", MQTT_TOPIC_PREFIX, device_id);
   mqtt.publish(topic, "online");
 }
 
-void loop() { mqtt.loop(); }
+void loop() {
+  if (mqtt_connect())
+    mqtt.loop();
+}
