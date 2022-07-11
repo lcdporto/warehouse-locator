@@ -2,7 +2,6 @@
 #include <FastLED.h>
 #include <PubSubClient.h>
 #include <SPIFFS.h>
-#include <WiFi.h>
 #include <WiFiManager.h>
 
 #define LED_STRIP_1_PIN 19
@@ -15,8 +14,8 @@
 #define NUM_LEDS 144 * 5
 #define NUM_STRIPS 6
 
-#define CONFIG_FILE_PATH "/dev-config.json"
-#define ID_FILE_PATH "/dev-config.json"
+#define CONFIG_FILE_PATH "/config.json"
+#define ID_FILE_PATH "/device-id.txt"
 
 #define MQTT_TOPIC_PREFIX "warehouse-locator/"
 
@@ -39,9 +38,12 @@ void mqtt_receive(char *topic, byte *payload, unsigned int length) {
   log_d("Message arrived [%s]: %s", topic, strndup((char *)payload, length));
 
   char *topic_prefix = strtok(topic, "/");
-  char *device_id = strtok(NULL, "/");
+  char *dev_id = strtok(NULL, "/");
   uint8_t strip_n = atoi(strtok(NULL, "/"));
   uint8_t led_n = atoi(strtok(NULL, "/"));
+
+  if (strcmp(dev_id, device_id) != 0)
+    return;
 
   led_strips[strip_n][led_n] = strncmp((char *)payload, "on", length) == 0
                                    ? CRGB(255, 255, 255)
@@ -67,7 +69,7 @@ bool mqtt_connect() {
 }
 
 void saveConfigCallback() {
-  StaticJsonDocument<200> json;
+  StaticJsonDocument<128> json;
   json["mqtt_server"] = strlen(custom_mqtt_server.getValue()) == 0
                             ? "server"
                             : custom_mqtt_server.getValue();
@@ -83,8 +85,8 @@ void saveConfigCallback() {
 
   fs::File configFile = SPIFFS.open(CONFIG_FILE_PATH, "w");
 
-  char json_pretty[250];
-  serializeJson(json, json_pretty);
+  char json_pretty[150];
+  serializeJsonPretty(json, json_pretty);
   log_d("%s", json_pretty);
 
   serializeJson(json, configFile);
@@ -100,8 +102,8 @@ void setup() {
   FastLED.addLeds<WS2812, LED_STRIP_5_PIN, GRB>(led_strips[4], NUM_LEDS);
   FastLED.addLeds<WS2812, LED_STRIP_6_PIN, GRB>(led_strips[5], NUM_LEDS);
 
-  SPIFFS.begin();
   WiFi.mode(WIFI_STA);
+  SPIFFS.begin(true);
 
   if (SPIFFS.exists(ID_FILE_PATH)) {
     fs::File device_id_file = SPIFFS.open(ID_FILE_PATH, "r");
@@ -124,6 +126,7 @@ void setup() {
 
   char portal_ssid[32] = "";
   sprintf(portal_ssid, "warehouse-locator-%s", device_id);
+  wm.autoConnect(portal_ssid);
 
   if (SPIFFS.exists(CONFIG_FILE_PATH)) {
     fs::File configFile = SPIFFS.open(CONFIG_FILE_PATH, "r");
@@ -156,8 +159,6 @@ void setup() {
     wm.startConfigPortal(portal_ssid, "lcdporto");
   }
 
-  wm.autoConnect(portal_ssid);
-
   mqtt.setServer(custom_mqtt_server.getValue(),
                  atoi(custom_mqtt_port.getValue()));
 
@@ -166,6 +167,8 @@ void setup() {
     delay(500);
     log_d("Failed to connect to MQTT. Retrying...");
   }
+  log_i("Connected to MQTT server: %s:%s", custom_mqtt_server.getValue(),
+        custom_mqtt_port.getValue());
 
   char topic[64];
   sprintf(topic, "%s%s", MQTT_TOPIC_PREFIX, device_id);
