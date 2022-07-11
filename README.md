@@ -3,10 +3,6 @@ Identifying a specific stock items inside a dense environment, such as a warehou
 
 This system is connected via WiFi to a MQTT broker and is able to receive commands to light up any given set of LEDs.
 
-# Firmware
-
-The firmware was developed using PlatformIO which can be found on the ```firmware``` folder and used according to the [the official documentation.](https://docs.platformio.org/en/stable/core/quickstart.html)
-
 ## Server
 The server is simply a MQTT broker. To setup the server you need to install [Docker](https://docs.docker.com/get-docker/) and [Docker Compose](https://docs.docker.com/compose/install/).
 
@@ -28,3 +24,19 @@ Then restart your server with:
 docker-compose restart mosquitto
 ```
 Now your server is up and running!
+
+# Firmware
+
+The firmware was developed using PlatformIO which can be found on the ```firmware``` folder and used according to the [the official documentation.](https://docs.platformio.org/en/stable/core/quickstart.html)
+
+## Example MQTT payloads
+
+### `warehouse-locator/<deviceId>/<strip-id>/<led-id>`
+
+```json
+on
+```
+or
+```json
+off
+```
