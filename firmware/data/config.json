@@ -1,0 +1,6 @@
+{
+    "mqtt_server": "192.168.1.134",
+    "mqtt_port": "1883",
+    "mqtt_user": "lcd",
+    "mqtt_pass": "lcd"
+}
