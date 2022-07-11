@@ -1,5 +1,13 @@
-# Warehouse Locator - Server stack
+# Warehouse Locator - An LED based stock search helper
+Identifying a specific stock items inside a dense environment, such as a warehouse, is difficult so we developed a LED strip based system that lights up around the stock item requested.
 
+This system is connected via WiFi to a MQTT broker and is able to receive commands to light up any given set of LEDs.
+
+# Firmware
+
+The firmware was developed using PlatformIO which can be found on the ```firmware``` folder and used according to the [the official documentation.](https://docs.platformio.org/en/stable/core/quickstart.html)
+
+## Server
 The server is simply a MQTT broker. To setup the server you need to install [Docker](https://docs.docker.com/get-docker/) and [Docker Compose](https://docs.docker.com/compose/install/).
 
 Because this will be a publicly accessible MQT broker,before you run the server, you need to define its access credentials. For that create a file inside the folder ```mosquitto``` called ```mosquitto.passwd``` with your user and password separated by a colon, here is an example:
