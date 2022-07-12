@@ -29,7 +29,7 @@ Now your server is up and running!
 
 The firmware was developed using PlatformIO which can be found on the ```firmware``` folder and used according to the [the official documentation.](https://docs.platformio.org/en/stable/core/quickstart.html)
 
-To configure the device to use your mqtt broker upload the file ```firmware/data/config.json``` to the ESP32 filesystem following the [this guide](https://randomnerdtutorials.com/esp32-vs-code-platformio-spiffs/)
+To configure the device to use your mqtt broker upload the file ```firmware/data/config.json``` to the ESP32 filesystem following the [this guide](https://randomnerdtutorials.com/esp32-vs-code-platformio-spiffs/). Another way to configure the MQTT broker is to set it at the same time you configure WiFi.
 
 ## Example MQTT payload
 
