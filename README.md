@@ -25,7 +25,18 @@ docker-compose restart mosquitto
 ```
 Now your server is up and running!
 
-## Firmware
+## Hardware
+The hardware is composed of a ESP32 and LED strips. The hardware connections are simple:
+| ESP32  | LED strip |
+| ------ | ---- |
+| GPIO15 | DATA |
+| GPIO16 | DATA |
+| GPIO19 | DATA |
+| GPIO22 | DATA |
+| GPIO21 | DATA |
+| GPIO25 | DATA |
+
+You can change this pin assignment as well as add more LED strips on the firmware. Your limitation is the RAM usage and the pin count of your board.
 
 The firmware was developed using PlatformIO which can be found on the ```firmware``` folder and used according to the [the official documentation.](https://docs.platformio.org/en/stable/core/quickstart.html)
 
