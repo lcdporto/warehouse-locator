@@ -46,3 +46,4 @@ To configure the device to use your mqtt broker upload the file ```firmware/data
   "timeout": 50
 }
 ```
+You can find a python script we used in our demo at [firmware/test/demo_pub.py](./firmware/test/demo_pub.py)
