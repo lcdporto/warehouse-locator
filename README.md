@@ -25,7 +25,7 @@ docker-compose restart mosquitto
 ```
 Now your server is up and running!
 
-# Firmware
+## Firmware
 
 The firmware was developed using PlatformIO which can be found on the ```firmware``` folder and used according to the [the official documentation.](https://docs.platformio.org/en/stable/core/quickstart.html)
 
