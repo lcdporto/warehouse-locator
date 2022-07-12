@@ -29,14 +29,18 @@ Now your server is up and running!
 
 The firmware was developed using PlatformIO which can be found on the ```firmware``` folder and used according to the [the official documentation.](https://docs.platformio.org/en/stable/core/quickstart.html)
 
-## Example MQTT payloads
+## Example MQTT payload
 
 ### `warehouse-locator/<deviceId>/<strip-id>/<led-id>`
 
-```
-on
-```
-or
-```
-off
+```json
+{
+  "state": "on",
+  "color": {
+    "r": 0,
+    "g": 255,
+    "b": 0
+  },
+  "timeout": 50
+}
 ```

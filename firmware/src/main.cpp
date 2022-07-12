@@ -45,9 +45,17 @@ void mqtt_receive(char *topic, byte *payload, unsigned int length) {
   if (strcmp(dev_id, device_id) != 0)
     return;
 
-  led_strips[strip_n][led_n] = strncmp((char *)payload, "on", length) == 0
-                                   ? CRGB(255, 255, 255)
-                                   : CRGB(0, 0, 0);
+  DynamicJsonDocument doc(length * 2);
+  if (deserializeJson(doc, (char *)payload)) {
+    log_e("Received invalid JSON");
+    return;
+  }
+
+  led_strips[strip_n][led_n] =
+      strcmp((const char *)doc["state"], "on") == 0
+          ? CRGB(doc["color"]["r"], doc["color"]["g"], doc["color"]["b"])
+          : CRGB(0, 0, 0);
+
   FastLED.show();
 }
 
