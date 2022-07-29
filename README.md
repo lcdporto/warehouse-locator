@@ -48,7 +48,7 @@ pip install --user platformio
 pio run --target upload
 ```
 
-**Note:** you may need to reboot your system between the two commands for the *pio* to be available.
+**Note:** you may need to reboot your system between the two commands for the *pio* executable to be available.
 
 To configure the device to use your mqtt broker power up your device and search for a WiFi network named after this project "warehouse-locator-\<ID\>". Connect to it and you should be promted to login to the network on a captive portal. There is where you find a form to fill in your WiFi credentials and MQTT server details.
 
