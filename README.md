@@ -6,20 +6,20 @@ This system is connected via WiFi to a MQTT broker and is able to receive comman
 ## Set up the server
 The server is simply a MQTT broker. To setup the server you need to install [Docker](https://docs.docker.com/get-docker/) and [Docker Compose](https://docs.docker.com/compose/install/).
 
-Because this will be a publicly accessible MQT broker,before you run the server, you need to define its access credentials. For that create a file on ```server/mosquitto/mosquitto.passwd``` with your user and password separated by a colon, here is an example:
+1. Because this will be a publicly accessible MQT broker,before you run the server, you need to define its access credentials. For that create a file on ```server/mosquitto/mosquitto.passwd``` with your user and password separated by a colon, here is an example:
 ```
 lcdporto:very-strong-password
 ```
-Then you are ready to start the server:
+2. Then you are ready to start the server:
 
 ```
 docker-compose up -d
 ```
-Before you can use it you need to encrypt the password file:
+3. Before you can use it you need to encrypt the password file:
 ```
 docker exec -it mosquitto mosquitto_passwd -U /mosquitto/config/mosquitto.passwd
 ```
-Then restart your server with:
+4. Then restart your server with:
 ```
 docker-compose restart mosquitto
 ```
@@ -29,30 +29,29 @@ Now your server is up and running!
 
 The hardware is composed of a ESP32 and LED strips. The hardware connections are simple:
 | ESP32  | LED strip |
-| ------ | ---- |
-| GPIO15 | DATA |
-| GPIO16 | DATA |
-| GPIO19 | DATA |
-| GPIO22 | DATA |
-| GPIO21 | DATA |
-| GPIO25 | DATA |
+| ------ | --------- |
+| GPIO15 | DATA      |
+| GPIO16 | DATA      |
+| GPIO19 | DATA      |
+| GPIO22 | DATA      |
+| GPIO21 | DATA      |
+| GPIO25 | DATA      |
 
 You can change this pin assignment as well as add more LED strips on the firmware. Your limitation is the RAM usage and the pin count of your board.
 
-The firmware was developed using PlatformIO which can be found on the ```firmware``` folder and used according to the [the official documentation.](https://platformio.org/platformio-ide). At the time of this writing the recommended method is to use [VS Code](https://code.visualstudio.com/) and the [official PlatformIO extension](https://marketplace.visualstudio.com/items?itemName=platformio.platformio-ide) which is a procedure that works on Windows, macOS and Linux.
+1. First you need to setup your computer to build the firmware with one of the two methods:
+   - At the time of this writing the recommended method is to use [VS Code](https://code.visualstudio.com/) and the [official PlatformIO extension](https://marketplace.visualstudio.com/items?itemName=platformio.platformio-ide) which is a procedure that works on Windows, macOS and Linux foloowing the [the official documentation.](https://platformio.org/platformio-ide).\
+   - You can also use a CLI approach that is available on all major platforms as well which have Python installed (follow [this guide](https://wiki.python.org/moin/BeginnersGuide/Download)) and then on the ```firmware``` folder run the following lines on the terminal of your operative system:
+    ```
+    pip install --user platformio
+    pio run --target upload
+    ```
+    **Note:** you may need to reboot your system between the two commands for the *pio* executable to be available.
 
-However, you can also use a CLI approach that is also available on all major platforms with Python installed (follow [this guide](https://wiki.python.org/moin/BeginnersGuide/Download)) and then on the ```firmware``` folder run the following lines on the terminal of your operative system:
-
-```
-pip install --user platformio
-pio run --target upload
-```
-
-**Note:** you may need to reboot your system between the two commands for the *pio* executable to be available.
-
-Next, you need to configure your device's WiFi network and MQTT broker details. To do that, power up your device and search for a WiFi network named after this project "warehouse-locator-\<ID\>". Connect to it and you should be promted to login to the network on a captive portal. There is where you find a form to fill in your WiFi credentials and MQTT server details.
-
+2. Next, you need to configure your device's WiFi network and MQTT broker details. To do that, power up your device and search for a WiFi network named after this project "warehouse-locator-\<ID\>". Connect to it and you should be promted to login to the network on a captive portal. There is where you find a form to fill in your WiFi credentials and MQTT server details.\
 Alternatively, you can upload a file containing the MQTT server details (```firmware/data/config.json```) to the ESP32 filesystem following the [this guide](https://randomnerdtutorials.com/esp32-vs-code-platformio-spiffs/). Keep in mind that you still need to follow the captive portal procedure to enter your WiFi credentials.
+
+Now your device is connected to the internet and able to receive messages from your broker that change the state of the LED strips you have hooked up.
 
 ## Example MQTT payload
 
