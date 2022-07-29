@@ -41,7 +41,7 @@ You can change this pin assignment as well as add more LED strips on the firmwar
 
 The firmware was developed using PlatformIO which can be found on the ```firmware``` folder and used according to the [the official documentation.](https://platformio.org/platformio-ide). At the time of this writing the recommended method is to use [VS Code](https://code.visualstudio.com/) and the [official PlatformIO extension](https://marketplace.visualstudio.com/items?itemName=platformio.platformio-ide) which is a procedure that works on Windows, macOS and Linux.
 
-However, you can also use a CLI approach that is also available on all major platforms with Python installed (follow [this guide](https://wiki.python.org/moin/BeginnersGuide/Download)) and then on the ```firmware``` run the following lines on the terminal of your operative system:
+However, you can also use a CLI approach that is also available on all major platforms with Python installed (follow [this guide](https://wiki.python.org/moin/BeginnersGuide/Download)) and then on the ```firmware``` folder run the following lines on the terminal of your operative system:
 
 ```
 pip install --user platformio
