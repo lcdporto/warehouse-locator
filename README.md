@@ -53,7 +53,7 @@ Alternatively, you can upload a file containing the MQTT server details (```firm
 
 Now your device is connected to the internet and able to receive messages from your broker that change the state of the LED strips you have hooked up.
 
-## Example MQTT payload
+## Send a commands
 
 The device can be controlled by sending a MQTT message to the broker identifying the device, led-strip and led index on the topic name as shown here:
 
