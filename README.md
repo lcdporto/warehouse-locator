@@ -48,7 +48,7 @@ You can change this pin assignment as well as add more LED strips on the firmwar
     ```
     **Note:** you may need to reboot your system between the two commands for the *pio* executable to be available.
 
-2. Next, you need to configure your device's WiFi network and MQTT broker details. To do that, power up your device and search for a WiFi network named after this project "warehouse-locator-\<ID\>". Connect to it and you should be promted to login to the network on a captive portal. There is where you find a form to fill in your WiFi credentials and MQTT server details.\
+2. Next, you need to configure your device's WiFi network and MQTT broker details. To do that, power up your device and search for a WiFi network named after this project "warehouse-locator-\<ID\>". Connect to it and you should be promted to login to the network on a captive portal. There is where you find a form to fill in your WiFi credentials and MQTT server details. If your device fails to connect to the network the configuration WiFi network will show up again after a few seconds.\
 Alternatively, you can upload a file containing the MQTT server details (```firmware/data/config.json```) to the ESP32 filesystem following the [this guide](https://randomnerdtutorials.com/esp32-vs-code-platformio-spiffs/). Keep in mind that you still need to follow the captive portal procedure to enter your WiFi credentials.
 
 Now your device is connected to the internet and able to receive messages from your broker that change the state of the LED strips you have hooked up.
