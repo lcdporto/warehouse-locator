@@ -28,7 +28,7 @@ WiFiManagerParameter custom_mqtt_server("mqttserver", "MQTT server address",
 WiFiManagerParameter custom_mqtt_port("mqttport", "MQTT server port", "1883",
                                       5);
 WiFiManagerParameter custom_mqtt_user("mqttuser", "MQTT username", "user", 16);
-WiFiManagerParameter custom_mqtt_pass("mqttpass", "MQTT password", "pass", 16);
+WiFiManagerParameter custom_mqtt_pass("mqttpass", "MQTT password", "pass", 64);
 
 WiFiManager wm;
 WiFiClient wifi_client;
@@ -160,7 +160,7 @@ void setup() {
     }
 
     if (json.containsKey("mqtt_pass")) {
-      custom_mqtt_pass.setValue(json["mqtt_pass"], 16);
+      custom_mqtt_pass.setValue(json["mqtt_pass"], 64);
     }
 
     configFile.close();
