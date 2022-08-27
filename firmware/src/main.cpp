@@ -19,6 +19,8 @@
 
 #define MQTT_TOPIC_PREFIX "warehouse-locator/"
 
+#define MQTT_ANNOUNCE_PERIOD 10 // in seconds
+
 char device_id[11] = "";
 
 CRGB led_strips[NUM_STRIPS][NUM_LEDS];
@@ -34,9 +36,20 @@ WiFiManager wm;
 WiFiClient wifi_client;
 PubSubClient mqtt(wifi_client);
 
-void control_LED(uint8_t strip_n, uint16_t led_n, uint8_t r = 255,
-                 uint8_t g = 255, uint8_t b = 255, uint16_t timeout = 5) {
-  led_strips[strip_n][led_n] = CRGB(r, g, b);
+typedef struct {
+  uint8_t strip;
+  uint16_t led;
+  uint8_t r = 255;
+  uint8_t g = 255;
+  uint8_t b = 255;
+  uint16_t timeout = 5;
+} led_ctrl;
+
+void control_LED(void *led_struct) {
+  led_ctrl *led = (led_ctrl *)led_struct;
+  led_strips[led->strip][led->led] = CRGB(led->r, led->g, led->b);
+  FastLED.show();
+  vTaskDelay(led->timeout * 1000 / portTICK_PERIOD_MS);
   FastLED.show();
 }
 
@@ -66,8 +79,15 @@ void mqtt_receive(char *topic, byte *payload, unsigned int length) {
       timeout = 5;
     }
 
-    control_LED(strip_n, led_n, atoi(doc["color"]["r"]),
-                atoi(doc["color"]["g"]), atoi(doc["color"]["b"]), timeout);
+    led_ctrl led;
+    led.strip = strip_n;
+    led.led = led_n;
+    led.r = atoi(doc["color"]["r"]);
+    led.g = atoi(doc["color"]["g"]);
+    led.b = atoi(doc["color"]["b"]);
+    led.timeout = timeout;
+
+    xTaskCreate(control_LED, "control_LED", 2048, (void *)&led, 1, NULL);
   } else {
     DynamicJsonDocument doc(length * 2);
     if (deserializeJson(doc, (char *)payload)) {
@@ -76,25 +96,37 @@ void mqtt_receive(char *topic, byte *payload, unsigned int length) {
     }
 
     JsonArray array = doc.as<JsonArray>();
-    for (JsonObject led : array) {
+    for (JsonObject led_json : array) {
 
       uint16_t timeout;
-      if (led.containsKey("timeout")) {
-        timeout = atoi(led["timeout"]);
+      if (led_json.containsKey("timeout")) {
+        timeout = atoi(led_json["timeout"]);
       } else {
         timeout = 5;
       }
 
-      control_LED(atoi(led["strip"]), atoi(led["led"]), atoi(led["color"]["r"]),
-                  atoi(led["color"]["g"]), atoi(led["color"]["b"]), timeout);
+      led_ctrl led;
+      led.strip = atoi(doc["strip"]);
+      led.led = atoi(doc["led"]);
+      led.r = atoi(doc["color"]["r"]);
+      led.g = atoi(doc["color"]["g"]);
+      led.b = atoi(doc["color"]["b"]);
+      led.timeout = timeout;
+
+      xTaskCreate(control_LED, "control_LED", 2048, (void *)&led, 1, NULL);
     }
   }
 }
 
-void mqtt_announce() {
-  char topic[64];
-  sprintf(topic, "%s%s", MQTT_TOPIC_PREFIX, device_id);
-  mqtt.publish(topic, "online");
+void mqtt_announce(void *) {
+  while (1) {
+    if (mqtt_connect()) {
+      char topic[64];
+      sprintf(topic, "%s%s", MQTT_TOPIC_PREFIX, device_id);
+      mqtt.publish(topic, "online");
+    }
+    vTaskDelay(MQTT_ANNOUNCE_PERIOD * 1000 / portTICK_PERIOD_MS);
+  }
 }
 
 bool mqtt_connect() {
@@ -215,7 +247,7 @@ void setup() {
     delay(500);
     log_d("Failed to connect to MQTT. Retrying...");
   }
-  mqtt_announce();
+  xTaskCreate(mqtt_announce, "announce_ID", 2048, NULL, 1, NULL);
 }
 
 void loop() {
