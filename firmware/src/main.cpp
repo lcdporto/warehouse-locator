@@ -50,6 +50,7 @@ void control_LED(void *led_struct) {
   led_strips[led->strip][led->led] = CRGB(led->r, led->g, led->b);
   FastLED.show();
   vTaskDelay(led->timeout * 1000 / portTICK_PERIOD_MS);
+  led_strips[led->strip][led->led] = CRGB(0, 0, 0);
   FastLED.show();
 }
 
