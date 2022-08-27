@@ -34,29 +34,67 @@ WiFiManager wm;
 WiFiClient wifi_client;
 PubSubClient mqtt(wifi_client);
 
+void control_LED(uint8_t strip_n, uint16_t led_n, uint8_t r = 255,
+                 uint8_t g = 255, uint8_t b = 255, uint16_t timeout = 5) {
+  led_strips[strip_n][led_n] = CRGB(r, g, b);
+  FastLED.show();
+}
+
 void mqtt_receive(char *topic, byte *payload, unsigned int length) {
   log_d("Message arrived [%s]: %s", topic, strndup((char *)payload, length));
 
   char *topic_prefix = strtok(topic, "/");
   char *dev_id = strtok(NULL, "/");
-  uint8_t strip_n = atoi(strtok(NULL, "/"));
-  uint8_t led_n = atoi(strtok(NULL, "/"));
 
-  if (strcmp(dev_id, device_id) != 0)
-    return;
+  char *strip_s = strtok(NULL, "/");
+  uint8_t strip_n;
+  uint16_t led_n;
+  if (strip_s != NULL) {
+    strip_n = atoi(strip_s);
+    led_n = atoi(strtok(NULL, "/"));
 
-  DynamicJsonDocument doc(length * 2);
-  if (deserializeJson(doc, (char *)payload)) {
-    log_e("Received invalid JSON");
-    return;
+    DynamicJsonDocument doc(length * 2);
+    if (deserializeJson(doc, (char *)payload)) {
+      log_e("Received invalid JSON");
+      return;
+    }
+
+    uint16_t timeout;
+    if (doc.containsKey("timeout")) {
+      timeout = atoi(doc["timeout"]);
+    } else {
+      timeout = 5;
+    }
+
+    control_LED(strip_n, led_n, atoi(doc["color"]["r"]),
+                atoi(doc["color"]["g"]), atoi(doc["color"]["b"]), timeout);
+  } else {
+    DynamicJsonDocument doc(length * 2);
+    if (deserializeJson(doc, (char *)payload)) {
+      log_e("Received invalid JSON");
+      return;
+    }
+
+    JsonArray array = doc.as<JsonArray>();
+    for (JsonObject led : array) {
+
+      uint16_t timeout;
+      if (led.containsKey("timeout")) {
+        timeout = atoi(led["timeout"]);
+      } else {
+        timeout = 5;
+      }
+
+      control_LED(atoi(led["strip"]), atoi(led["led"]), atoi(led["color"]["r"]),
+                  atoi(led["color"]["g"]), atoi(led["color"]["b"]), timeout);
+    }
   }
+}
 
-  led_strips[strip_n][led_n] =
-      strcmp((const char *)doc["state"], "on") == 0
-          ? CRGB(doc["color"]["r"], doc["color"]["g"], doc["color"]["b"])
-          : CRGB(0, 0, 0);
-
-  FastLED.show();
+void mqtt_announce() {
+  char topic[64];
+  sprintf(topic, "%s%s", MQTT_TOPIC_PREFIX, device_id);
+  mqtt.publish(topic, "online");
 }
 
 bool mqtt_connect() {
@@ -177,10 +215,7 @@ void setup() {
     delay(500);
     log_d("Failed to connect to MQTT. Retrying...");
   }
-
-  char topic[64];
-  sprintf(topic, "%s%s", MQTT_TOPIC_PREFIX, device_id);
-  mqtt.publish(topic, "online");
+  mqtt_announce();
 }
 
 void loop() {

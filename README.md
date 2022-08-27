@@ -55,19 +55,58 @@ Now your device is connected to the internet and able to receive messages from y
 
 ## Send commands
 
-The device can be controlled by sending a MQTT message to the broker identifying the device, led-strip and led index on the topic name as shown here:
+The device can be controlled by sending a MQTT message to the broker identifying the device, led-strip and led index and two modes are supported:
 
-### `warehouse-locator/<deviceId>/<strip-id>/<led-id>`
-
+### Single LED control
+**Topic:** `warehouse-locator/<deviceId>/<strip-id>/<led-id>`\
+**Payload:**
 ```json
 {
-  "state": "on",
   "color": {
     "r": 0,
     "g": 255,
     "b": 0
   },
-  "timeout": 50
+  "timeout": 5
 }
 ```
-You can find a python script we used in our demo at [firmware/test/demo_pub.py](./firmware/test/demo_pub.py) as an example to control a device with two led strips. 
+
+### Multiple LED control
+**Topic:** `warehouse-locator/<deviceId>`\
+**Payload:**
+```json
+[
+  {
+    "strip": 3,
+    "led": 2,
+    "color": {
+      "r": 255,
+      "g": 0,
+      "b": 0
+    },
+    "timeout": 5
+  },
+  {
+    "strip": 5,
+    "led": 48,
+    "color": {
+      "r": 0,
+      "g": 255,
+      "b": 0
+    },
+    "timeout": 5
+  },
+  {
+    "strip": 5,
+    "led": 48,
+    "color": {
+      "r": 0,
+      "g": 0,
+      "b": 255
+    },
+    "timeout": 5
+  }
+]
+```
+
+Examples for both modes can be found at the [examples](./examples) folder.
