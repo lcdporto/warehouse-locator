@@ -57,6 +57,8 @@ Now your device is connected to the internet and able to receive messages from y
 
 To discover connected devices and check their ID, the topic ```warehouse-locator/+``` can be subscribed and devices will periodically publish on that topic to announce themselves and you can check their ID on the topic name they use. Notice that the subscription topic suggested has the "+" wildcard, this means you'll subscribe to all devices announce topic.
 
+An example on how you can listen to these messages is [here](.examples/../examples/discover_devices.py).
+
 ## Send commands
 
 The device can be controlled by sending a MQTT message to the broker identifying the device, led-strip and led index and two modes are supported:
