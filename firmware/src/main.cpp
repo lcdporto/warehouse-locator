@@ -118,17 +118,6 @@ void mqtt_receive(char *topic, byte *payload, unsigned int length) {
   }
 }
 
-void mqtt_announce(void *) {
-  while (1) {
-    if (mqtt_connect()) {
-      char topic[64];
-      sprintf(topic, "%s%s", MQTT_TOPIC_PREFIX, device_id);
-      mqtt.publish(topic, "online");
-    }
-    vTaskDelay(MQTT_ANNOUNCE_PERIOD * 1000 / portTICK_PERIOD_MS);
-  }
-}
-
 bool mqtt_connect() {
   if (mqtt.connected())
     return true;
@@ -146,6 +135,17 @@ bool mqtt_connect() {
   log_i("Connected to MQTT server: %s:%s", custom_mqtt_server.getValue(),
         custom_mqtt_port.getValue());
   return mqtt.connected();
+}
+
+void mqtt_announce(void *) {
+  while (1) {
+    if (mqtt_connect()) {
+      char topic[64];
+      sprintf(topic, "%s%s", MQTT_TOPIC_PREFIX, device_id);
+      mqtt.publish(topic, "online");
+    }
+    vTaskDelay(MQTT_ANNOUNCE_PERIOD * 1000 / portTICK_PERIOD_MS);
+  }
 }
 
 void saveConfigCallback() {
