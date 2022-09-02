@@ -21,6 +21,8 @@
 
 #define MQTT_ANNOUNCE_PERIOD 10 // in seconds
 
+#define LED_OFF_PAYLOAD "{\"color\":{\"r\": 0,\"g\": 0,\"b\":0}}"
+
 char device_id[11] = "";
 
 CRGB led_strips[NUM_STRIPS][NUM_LEDS];
@@ -46,12 +48,23 @@ typedef struct {
 } led_ctrl;
 
 void control_LED(void *led_struct) {
+  char topic[64];
+  sprintf(topic, "%s%d/%d/state", MQTT_TOPIC_PREFIX, led->strip, led->led);
+  
   led_ctrl *led = (led_ctrl *)led_struct;
   led_strips[led->strip][led->led] = CRGB(led->r, led->g, led->b);
   FastLED.show();
+  
+  char payload[64];
+  sprintf(payload, "{\"color\":{\"r\":%u,\"g\":%u,\"b\":%u}}",led->r, led->g, led->b);
+  mqtt.publish(topic, payload);
+  
   vTaskDelay(led->timeout * 1000 / portTICK_PERIOD_MS);
+  
   led_strips[led->strip][led->led] = CRGB(0, 0, 0);
   FastLED.show();
+  
+  mqtt.publish(topic, LED_OFF_PAYLOAD, true);
 }
 
 void mqtt_receive(char *topic, byte *payload, unsigned int length) {
