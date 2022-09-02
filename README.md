@@ -121,7 +121,7 @@ Examples for both modes can be found at the [examples](./examples) folder.
 
 The device publishes state information  to MQTT (retain flag set) whenever a LED changes its state.
 
-**Topic:** `warehouse-locator/<deviceId>/<strip-id>/<led-id>`\
+**Topic:** `warehouse-locator/<deviceId>/<strip-id>/<led-id>/state`\
 **Payload:**
 ```json
 {
