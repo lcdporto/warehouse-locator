@@ -49,7 +49,7 @@ typedef struct {
 
 void control_LED(void *led_struct) {
   char topic[64];
-  sprintf(topic, "%s%d/%d/state", MQTT_TOPIC_PREFIX, led->strip, led->led);
+  sprintf(topic, "%s%s/%d/%d/state", MQTT_TOPIC_PREFIX, device_id, led->strip, led->led);
   
   led_ctrl *led = (led_ctrl *)led_struct;
   led_strips[led->strip][led->led] = CRGB(led->r, led->g, led->b);
@@ -57,7 +57,7 @@ void control_LED(void *led_struct) {
   
   char payload[64];
   sprintf(payload, "{\"color\":{\"r\":%u,\"g\":%u,\"b\":%u}}",led->r, led->g, led->b);
-  mqtt.publish(topic, payload);
+  mqtt.publish(topic, payload, true);
   
   vTaskDelay(led->timeout * 1000 / portTICK_PERIOD_MS);
   
