@@ -116,3 +116,16 @@ The device can be controlled by sending a MQTT message to the broker identifying
 ```
 
 Examples for both modes can be found at the [examples](./examples) folder.
+
+## Read LED states
+
+The device publishes state information to `warehouse-locator/<deviceId>/<strip-id>/<led-id>/state` whenever a LED changes its state with the following format with the MQTT retain flag set:
+```json
+{
+  "color": {
+    "r": 0,
+    "g": 255,
+    "b": 0
+  },
+}
+```
