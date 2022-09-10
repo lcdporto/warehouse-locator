@@ -3,6 +3,7 @@
 #include <PubSubClient.h>
 #include <SPIFFS.h>
 #include <WiFiManager.h>
+#include <mutex>
 
 #define LED_STRIP_1_PIN 15
 #define LED_STRIP_2_PIN 16
@@ -19,13 +20,14 @@
 
 #define MQTT_TOPIC_PREFIX "warehouse-locator/"
 
-#define MQTT_ANNOUNCE_PERIOD 10 // in seconds
+#define MQTT_ANNOUNCE_PERIOD 30 // in seconds
 
 #define LED_OFF_PAYLOAD "{\"color\":{\"r\": 0,\"g\": 0,\"b\":0}}"
 
 char device_id[11] = "";
 
-CRGB led_strips[NUM_STRIPS][NUM_LEDS];
+static CRGB led_strips[NUM_STRIPS][NUM_LEDS];
+SemaphoreHandle_t led_mtx = xSemaphoreCreateMutex();
 
 WiFiManagerParameter custom_mqtt_server("mqttserver", "MQTT server address",
                                         "server", 64);
@@ -48,47 +50,66 @@ typedef struct {
 } led_ctrl;
 
 void control_LED(void *led_struct) {
+  led_ctrl led;
+  memcpy(&led, led_struct, sizeof(led_ctrl));
+
   char topic[64];
-  sprintf(topic, "%s%s/%d/%d/state", MQTT_TOPIC_PREFIX, device_id, led->strip, led->led);
-  
-  led_ctrl *led = (led_ctrl *)led_struct;
-  led_strips[led->strip][led->led] = CRGB(led->r, led->g, led->b);
+  sprintf(topic, "%s%s/%d/%d/state", MQTT_TOPIC_PREFIX, device_id, led.strip,
+          led.led);
+  log_d("Publishing to state topic: %s", topic);
+
+  log_d("Turned strip %u led %u on", led.strip, led.led);
+  xSemaphoreTake(led_mtx, portMAX_DELAY);
+  led_strips[led.strip][led.led] = CRGB(led.r, led.g, led.b);
   FastLED.show();
-  
+  xSemaphoreGive(led_mtx);
+
   char payload[64];
-  sprintf(payload, "{\"color\":{\"r\":%u,\"g\":%u,\"b\":%u}}",led->r, led->g, led->b);
+  sprintf(payload, "{\"color\":{\"r\":%u,\"g\":%u,\"b\":%u}}", led.r, led.g,
+          led.b);
   mqtt.publish(topic, payload, true);
-  
-  vTaskDelay(led->timeout * 1000 / portTICK_PERIOD_MS);
-  
-  led_strips[led->strip][led->led] = CRGB(0, 0, 0);
+
+  vTaskDelay(led.timeout * 1000 / portTICK_PERIOD_MS);
+
+  xSemaphoreTake(led_mtx, portMAX_DELAY);
+  led_strips[led.strip][led.led] = CRGB(0, 0, 0);
   FastLED.show();
-  
+  xSemaphoreGive(led_mtx);
+
   mqtt.publish(topic, LED_OFF_PAYLOAD, true);
+  log_d("Turned strip %u led %u off", led.strip, led.led);
+
+  vTaskDelete(NULL);
 }
 
 void mqtt_receive(char *topic, byte *payload, unsigned int length) {
   log_d("Message arrived [%s]: %s", topic, strndup((char *)payload, length));
 
-  char *topic_prefix = strtok(topic, "/");
-  char *dev_id = strtok(NULL, "/");
+  // skip prefix, device ID and forward slash
+  topic += strlen(MQTT_TOPIC_PREFIX) + 10 + 1;
 
-  char *strip_s = strtok(NULL, "/");
-  uint8_t strip_n;
-  uint16_t led_n;
-  if (strip_s != NULL) {
-    strip_n = atoi(strip_s);
+  log_d("Trimmed topic to %s", topic);
+
+  char *token = strtok(topic, "/");
+  if (strcmp(token, "multiple") != 0) {
+    uint8_t strip_n;
+    uint16_t led_n;
+
+    strip_n = atoi(token);
     led_n = atoi(strtok(NULL, "/"));
+
+    log_d("Addressed strip %u and led %u", strip_n, led_n);
 
     DynamicJsonDocument doc(length * 2);
     if (deserializeJson(doc, (char *)payload)) {
       log_e("Received invalid JSON");
       return;
     }
+    log_d("Deserialized JSON successfully");
 
     uint16_t timeout;
     if (doc.containsKey("timeout")) {
-      timeout = atoi(doc["timeout"]);
+      timeout = doc["timeout"];
     } else {
       timeout = 5;
     }
@@ -96,38 +117,45 @@ void mqtt_receive(char *topic, byte *payload, unsigned int length) {
     led_ctrl led;
     led.strip = strip_n;
     led.led = led_n;
-    led.r = atoi(doc["color"]["r"]);
-    led.g = atoi(doc["color"]["g"]);
-    led.b = atoi(doc["color"]["b"]);
+    led.r = doc["color"]["r"];
+    led.g = doc["color"]["g"];
+    led.b = doc["color"]["b"];
     led.timeout = timeout;
 
+    log_d(
+        "Will turn on the strip %u led %u with color (%u,%u,%u) for %u seconds",
+        led.strip, led.led, led.r, led.g, led.b, led.timeout);
+
     xTaskCreate(control_LED, "control_LED", 2048, (void *)&led, 1, NULL);
+    delay(5);
   } else {
     DynamicJsonDocument doc(length * 2);
     if (deserializeJson(doc, (char *)payload)) {
       log_e("Received invalid JSON");
       return;
     }
+    log_d("Deserialized JSON successfully");
+    log_d("Doc has size: %d", doc.size());
 
-    JsonArray array = doc.as<JsonArray>();
-    for (JsonObject led_json : array) {
+    for (uint8_t i = 0; i < doc.size(); i++) {
 
       uint16_t timeout;
-      if (led_json.containsKey("timeout")) {
-        timeout = atoi(led_json["timeout"]);
+      if (doc[i].containsKey("timeout")) {
+        timeout = doc[i]["timeout"];
       } else {
         timeout = 5;
       }
 
       led_ctrl led;
-      led.strip = atoi(doc["strip"]);
-      led.led = atoi(doc["led"]);
-      led.r = atoi(doc["color"]["r"]);
-      led.g = atoi(doc["color"]["g"]);
-      led.b = atoi(doc["color"]["b"]);
+      led.strip = doc[i]["strip"];
+      led.led = doc[i]["led"];
+      led.r = doc[i]["color"]["r"];
+      led.g = doc[i]["color"]["g"];
+      led.b = doc[i]["color"]["b"];
       led.timeout = timeout;
 
       xTaskCreate(control_LED, "control_LED", 2048, (void *)&led, 1, NULL);
+      delay(5);
     }
   }
 }
@@ -145,6 +173,11 @@ bool mqtt_connect() {
   char topic[64];
   sprintf(topic, "%s%s/+/+", MQTT_TOPIC_PREFIX, device_id);
   mqtt.subscribe(topic);
+  log_v("Subscribed to topic: %s", topic);
+
+  sprintf(topic, "%s%s/multiple", MQTT_TOPIC_PREFIX, device_id);
+  mqtt.subscribe(topic);
+  log_v("Subscribed to topic: %s", topic);
 
   log_i("Connected to MQTT server: %s:%s", custom_mqtt_server.getValue(),
         custom_mqtt_port.getValue());
@@ -205,7 +238,7 @@ void setup() {
     device_id_file.close();
   } else {
     fs::File device_id_file = SPIFFS.open(ID_FILE_PATH, "w");
-    sprintf(device_id, "%u", esp_random());
+    sprintf(device_id, "%010u", esp_random());
     device_id_file.print(device_id);
     device_id_file.close();
   }
@@ -218,11 +251,9 @@ void setup() {
   wm.setSaveConfigCallback(saveConfigCallback);
   wm.setTitle("Warehouse Locator");
 
-  char portal_ssid[32] = "";
-  sprintf(portal_ssid, "warehouse-locator-%s", device_id);
-  wm.autoConnect(portal_ssid);
-
+  bool configs_present = false;
   if (SPIFFS.exists(CONFIG_FILE_PATH)) {
+    configs_present = true;
     fs::File configFile = SPIFFS.open(CONFIG_FILE_PATH, "r");
     DynamicJsonDocument json(configFile.size() * 2);
     auto deserialization_error = deserializeJson(json, configFile);
@@ -250,21 +281,36 @@ void setup() {
     configFile.close();
   } else {
     log_d("Config JSON not found");
-    wm.startConfigPortal(portal_ssid, "lcdporto");
+    configs_present = false;
+  }
+
+  char portal_ssid[32] = "";
+  sprintf(portal_ssid, "warehouse-locator-%s", device_id);
+  wm.autoConnect(portal_ssid);
+
+  if (configs_present == false) {
+    wm.startConfigPortal(portal_ssid);
   }
 
   mqtt.setServer(custom_mqtt_server.getValue(),
                  atoi(custom_mqtt_port.getValue()));
 
   mqtt.setCallback(mqtt_receive);
-  while (mqtt_connect() == false) {
-    delay(500);
-    log_d("Failed to connect to MQTT. Retrying...");
+
+  if (mqtt_connect() == false) {
+    log_d("Failed to connect to MQTT. Starting config portal");
+    wm.setConfigPortalTimeout(5 * 60);
+    wm.startConfigPortal(portal_ssid);
+    ESP.restart();
   }
+
   xTaskCreate(mqtt_announce, "announce_ID", 2048, NULL, 1, NULL);
 }
 
 void loop() {
-  if (mqtt_connect())
+  if (mqtt_connect()) {
     mqtt.loop();
+  } else {
+    delay(1000);
+  }
 }

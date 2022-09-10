@@ -5,9 +5,9 @@ import time
 MQTT_TOPIC_PREFIX = "warehouse-locator/"
 MQTT_SERVER_ADDRESS = "localhost"
 MQTT_SERVER_PORT = 1883
-MQTT_USER = "lcdporto"
-MQTT_PASSWORD = "very-strong-password"
-DEVICE_ID = "1952661117"
+MQTT_USER = "lcd"
+MQTT_PASSWORD = "lcd"
+DEVICE_ID = "3012159020"
 
 
 def on_connect(client, userdata, flags, rc):
