@@ -1,5 +1,6 @@
 #include <ArduinoJson.h>
 #include <FastLED.h>
+#define MQTT_MAX_PACKET_SIZE 2048
 #include <PubSubClient.h>
 #include <SPIFFS.h>
 #include <WiFiManager.h>
@@ -60,8 +61,11 @@ void control_LED(void *led_struct) {
 
   log_d("Turned strip %u led %u on", led.strip, led.led);
   xSemaphoreTake(led_mtx, portMAX_DELAY);
+  delay(1);
   led_strips[led.strip][led.led] = CRGB(led.r, led.g, led.b);
+  delay(1);
   FastLED.show();
+  delay(1);
   xSemaphoreGive(led_mtx);
 
   char payload[64];
@@ -72,8 +76,11 @@ void control_LED(void *led_struct) {
   vTaskDelay(led.timeout * 1000 / portTICK_PERIOD_MS);
 
   xSemaphoreTake(led_mtx, portMAX_DELAY);
+  delay(1);
   led_strips[led.strip][led.led] = CRGB(0, 0, 0);
+  delay(1);
   FastLED.show();
+  delay(1);
   xSemaphoreGive(led_mtx);
 
   mqtt.publish(topic, LED_OFF_PAYLOAD, true);
@@ -127,7 +134,7 @@ void mqtt_receive(char *topic, byte *payload, unsigned int length) {
         led.strip, led.led, led.r, led.g, led.b, led.timeout);
 
     xTaskCreate(control_LED, "control_LED", 2048, (void *)&led, 1, NULL);
-    delay(5);
+    delay(1);
   } else {
     DynamicJsonDocument doc(length * 2);
     if (deserializeJson(doc, (char *)payload)) {
@@ -155,7 +162,7 @@ void mqtt_receive(char *topic, byte *payload, unsigned int length) {
       led.timeout = timeout;
 
       xTaskCreate(control_LED, "control_LED", 2048, (void *)&led, 1, NULL);
-      delay(5);
+      delay(1);
     }
   }
 }
