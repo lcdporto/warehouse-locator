@@ -1,20 +1,15 @@
 #include <ArduinoJson.h>
+#include <EthernetENC.h>
 #include <FastLED.h>
-#define MQTT_MAX_PACKET_SIZE 2048
 #include <PubSubClient.h>
 #include <SPIFFS.h>
-#include <WiFiManager.h>
 #include <mutex>
 
-#define LED_STRIP_1_PIN 15
-#define LED_STRIP_2_PIN 16
-#define LED_STRIP_3_PIN 19
-#define LED_STRIP_4_PIN 22
-#define LED_STRIP_5_PIN 21
-#define LED_STRIP_6_PIN 25
+#define LED_STRIP_1_PIN 22
+#define LED_STRIP_2_PIN 17
 
 #define NUM_LEDS 144 * 5
-#define NUM_STRIPS 6
+#define NUM_STRIPS 2
 
 #define CONFIG_FILE_PATH "/config.json"
 #define ID_FILE_PATH "/device-id.txt"
@@ -25,21 +20,20 @@
 
 #define LED_OFF_PAYLOAD "{\"color\":{\"r\": 0,\"g\": 0,\"b\":0}}"
 
+#define MQTT_SERVER "GPereira-Desktop.lan"
+#define MQTT_PORT 1883
+#define MQTT_USER "lcd"
+#define MQTT_PASS "lcd"
+
+byte mac[] = {0xDE, 0xAD, 0xBE, 0xEF, 0xFE, 0xED};
+
 char device_id[11] = "";
 
 static CRGB led_strips[NUM_STRIPS][NUM_LEDS];
 SemaphoreHandle_t led_mtx = xSemaphoreCreateMutex();
 
-WiFiManagerParameter custom_mqtt_server("mqttserver", "MQTT server address",
-                                        "server", 64);
-WiFiManagerParameter custom_mqtt_port("mqttport", "MQTT server port", "1883",
-                                      5);
-WiFiManagerParameter custom_mqtt_user("mqttuser", "MQTT username", "user", 16);
-WiFiManagerParameter custom_mqtt_pass("mqttpass", "MQTT password", "pass", 64);
-
-WiFiManager wm;
-WiFiClient wifi_client;
-PubSubClient mqtt(wifi_client);
+EthernetClient client;
+PubSubClient mqtt(client);
 
 typedef struct {
   uint8_t strip;
@@ -171,8 +165,7 @@ bool mqtt_connect() {
   if (mqtt.connected())
     return true;
 
-  bool status = mqtt.connect(device_id, custom_mqtt_user.getValue(),
-                             custom_mqtt_pass.getValue());
+  bool status = mqtt.connect(device_id, MQTT_USER, MQTT_PASS);
 
   if (status == false) {
     return false;
@@ -186,8 +179,8 @@ bool mqtt_connect() {
   mqtt.subscribe(topic);
   log_v("Subscribed to topic: %s", topic);
 
-  log_i("Connected to MQTT server: %s:%s", custom_mqtt_server.getValue(),
-        custom_mqtt_port.getValue());
+  // log_i("Connected to MQTT server: %s:%s", MQTT_SERVER, MQTT_PORT);
+
   return mqtt.connected();
 }
 
@@ -202,41 +195,10 @@ void mqtt_announce(void *) {
   }
 }
 
-void saveConfigCallback() {
-  StaticJsonDocument<128> json;
-  json["mqtt_server"] = strlen(custom_mqtt_server.getValue()) == 0
-                            ? "server"
-                            : custom_mqtt_server.getValue();
-  json["mqtt_port"] = strlen(custom_mqtt_port.getValue()) == 0
-                          ? "port"
-                          : custom_mqtt_port.getValue();
-  json["mqtt_user"] = strlen(custom_mqtt_user.getValue()) == 0
-                          ? "user"
-                          : custom_mqtt_user.getValue();
-  json["mqtt_pass"] = strlen(custom_mqtt_pass.getValue()) == 0
-                          ? "pass"
-                          : custom_mqtt_pass.getValue();
-
-  fs::File configFile = SPIFFS.open(CONFIG_FILE_PATH, "w");
-
-  char json_pretty[150];
-  serializeJsonPretty(json, json_pretty);
-  log_d("%s", json_pretty);
-
-  serializeJson(json, configFile);
-  configFile.close();
-  ESP.restart();
-}
-
 void setup() {
   FastLED.addLeds<WS2812, LED_STRIP_1_PIN, GRB>(led_strips[0], NUM_LEDS);
   FastLED.addLeds<WS2812, LED_STRIP_2_PIN, GRB>(led_strips[1], NUM_LEDS);
-  FastLED.addLeds<WS2812, LED_STRIP_3_PIN, GRB>(led_strips[2], NUM_LEDS);
-  FastLED.addLeds<WS2812, LED_STRIP_4_PIN, GRB>(led_strips[3], NUM_LEDS);
-  FastLED.addLeds<WS2812, LED_STRIP_5_PIN, GRB>(led_strips[4], NUM_LEDS);
-  FastLED.addLeds<WS2812, LED_STRIP_6_PIN, GRB>(led_strips[5], NUM_LEDS);
 
-  WiFi.mode(WIFI_STA);
   SPIFFS.begin(true);
 
   if (SPIFFS.exists(ID_FILE_PATH)) {
@@ -251,65 +213,17 @@ void setup() {
   }
   log_d("Device ID: %s", device_id);
 
-  wm.addParameter(&custom_mqtt_server);
-  wm.addParameter(&custom_mqtt_port);
-  wm.addParameter(&custom_mqtt_user);
-  wm.addParameter(&custom_mqtt_pass);
-  wm.setSaveConfigCallback(saveConfigCallback);
-  wm.setTitle("Warehouse Locator");
-
-  bool configs_present = false;
-  if (SPIFFS.exists(CONFIG_FILE_PATH)) {
-    configs_present = true;
-    fs::File configFile = SPIFFS.open(CONFIG_FILE_PATH, "r");
-    DynamicJsonDocument json(configFile.size() * 2);
-    auto deserialization_error = deserializeJson(json, configFile);
-    if (deserialization_error) {
-      SPIFFS.format();
-      ESP.restart();
-    }
-
-    if (json.containsKey("mqtt_server")) {
-      custom_mqtt_server.setValue(json["mqtt_server"], 64);
-    }
-
-    if (json.containsKey("mqtt_port")) {
-      custom_mqtt_port.setValue(json["mqtt_port"], 5);
-    }
-
-    if (json.containsKey("mqtt_user")) {
-      custom_mqtt_user.setValue(json["mqtt_user"], 16);
-    }
-
-    if (json.containsKey("mqtt_pass")) {
-      custom_mqtt_pass.setValue(json["mqtt_pass"], 64);
-    }
-
-    configFile.close();
+  Ethernet.init(5);
+  Ethernet.begin(mac);
+  if (Ethernet.linkStatus() == LinkOFF) {
+    log_e("Error initializing Ethernet");
   } else {
-    log_d("Config JSON not found");
-    configs_present = false;
+    log_d("Ethernet init success, IP: %s", Ethernet.localIP().toString());
   }
 
-  char portal_ssid[32] = "";
-  sprintf(portal_ssid, "warehouse-locator-%s", device_id);
-  wm.autoConnect(portal_ssid);
-
-  if (configs_present == false) {
-    wm.startConfigPortal(portal_ssid);
-  }
-
-  mqtt.setServer(custom_mqtt_server.getValue(),
-                 atoi(custom_mqtt_port.getValue()));
+  mqtt.setServer(MQTT_SERVER, MQTT_PORT);
 
   mqtt.setCallback(mqtt_receive);
-
-  if (mqtt_connect() == false) {
-    log_d("Failed to connect to MQTT. Starting config portal");
-    wm.setConfigPortalTimeout(5 * 60);
-    wm.startConfigPortal(portal_ssid);
-    ESP.restart();
-  }
 
   xTaskCreate(mqtt_announce, "announce_ID", 2048, NULL, 1, NULL);
 }
@@ -317,7 +231,5 @@ void setup() {
 void loop() {
   if (mqtt_connect()) {
     mqtt.loop();
-  } else {
-    delay(1000);
   }
 }
