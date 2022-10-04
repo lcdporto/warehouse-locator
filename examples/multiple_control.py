@@ -7,7 +7,7 @@ MQTT_SERVER_ADDRESS = "localhost"
 MQTT_SERVER_PORT = 1883
 MQTT_USER = "lcd"
 MQTT_PASSWORD = "lcd"
-DEVICE_ID = "3012159020"
+DEVICE_ID = "4098283885"
 
 
 def on_connect(client, userdata, flags, rc):
@@ -48,16 +48,6 @@ led_group = [
             "r": 255,
             "g": 0,
             "b": 0
-        },
-        "timeout": 5
-    },
-    {
-        "strip": 0,
-        "led": 3,
-        "color": {
-            "r": 255,
-            "g": 255,
-            "b": 255
         },
         "timeout": 5
     }

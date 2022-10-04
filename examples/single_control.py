@@ -7,7 +7,7 @@ MQTT_SERVER_ADDRESS = "localhost"
 MQTT_SERVER_PORT = 1883
 MQTT_USER = "lcd"
 MQTT_PASSWORD = "lcd"
-DEVICE_ID = "3012159020"
+DEVICE_ID = "4098283885"
 
 
 def on_connect(client, userdata, flags, rc):
@@ -87,17 +87,17 @@ for a in A2:
 time.sleep(3)
 
 for a in A3:
-    white.timeout = 8
+    white["timeout"] = 8
     client.publish(a, json.dumps(white))
 time.sleep(2)
 for a in A4:
-    red.timeout = 8
+    red["timeout"] = 8
     client.publish(a, json.dumps(red))
 time.sleep(2)
 for a in A2:
-    green.timeout = 8
+    green["timeout"] = 8
     client.publish(a, json.dumps(green))
 time.sleep(2)
 for a in A1:
-    blue.timeout = 8
+    blue["timeout"] = 8
     client.publish(a, json.dumps(blue))
