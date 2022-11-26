@@ -128,37 +128,54 @@ void mqtt_receive(char *topic, byte *payload, unsigned int length) {
         led.strip, led.led, led.r, led.g, led.b, led.timeout);
 
     xTaskCreate(control_LED, "control_LED", 2048, (void *)&led, 1, NULL);
-    delay(1);
   } else {
-    DynamicJsonDocument doc(length * 2);
-    if (deserializeJson(doc, (char *)payload)) {
-      log_e("Received invalid JSON");
-      return;
-    }
-    log_d("Deserialized JSON successfully");
-    log_d("Doc has size: %d", doc.size());
 
-    for (uint8_t i = 0; i < doc.size(); i++) {
+    if (strcmp((char *)payload, "all") == 0) {
+      for (uint16_t j = 0; j < NUM_LEDS; j++) {
+        for (uint8_t i = 0; i < NUM_STRIPS; i++) {
+          led_ctrl led;
+          led.strip = i;
+          led.led = j;
+          led.r = 255;
+          led.g = 255;
+          led.b = 255;
+          led.timeout = 1;
 
-      uint16_t timeout;
-      if (doc[i].containsKey("timeout")) {
-        timeout = doc[i]["timeout"];
-      } else {
-        timeout = 5;
+          xTaskCreate(control_LED, "control_LED", 2048, (void *)&led, 1, NULL);
+        }
+        delay(1000);
       }
+    } else {
+      DynamicJsonDocument doc(length * 2);
+      if (deserializeJson(doc, (char *)payload)) {
+        log_e("Received invalid JSON");
+        return;
+      }
+      log_d("Deserialized JSON successfully");
+      log_d("Doc has size: %d", doc.size());
 
-      led_ctrl led;
-      led.strip = doc[i]["strip"];
-      led.led = doc[i]["led"];
-      led.r = doc[i]["color"]["r"];
-      led.g = doc[i]["color"]["g"];
-      led.b = doc[i]["color"]["b"];
-      led.timeout = timeout;
+      for (uint8_t i = 0; i < doc.size(); i++) {
 
-      xTaskCreate(control_LED, "control_LED", 2048, (void *)&led, 1, NULL);
-      delay(1);
+        uint16_t timeout;
+        if (doc[i].containsKey("timeout")) {
+          timeout = doc[i]["timeout"];
+        } else {
+          timeout = 5;
+        }
+
+        led_ctrl led;
+        led.strip = doc[i]["strip"];
+        led.led = doc[i]["led"];
+        led.r = doc[i]["color"]["r"];
+        led.g = doc[i]["color"]["g"];
+        led.b = doc[i]["color"]["b"];
+        led.timeout = timeout;
+
+        xTaskCreate(control_LED, "control_LED", 2048, (void *)&led, 1, NULL);
+      }
     }
   }
+  delay(1);
 }
 
 bool mqtt_connect() {
@@ -179,7 +196,7 @@ bool mqtt_connect() {
   mqtt.subscribe(topic);
   log_v("Subscribed to topic: %s", topic);
 
-  // log_i("Connected to MQTT server: %s:%s", MQTT_SERVER, MQTT_PORT);
+  log_i("Connected to MQTT server: %s:%s", MQTT_SERVER, MQTT_PORT);
 
   return mqtt.connected();
 }
