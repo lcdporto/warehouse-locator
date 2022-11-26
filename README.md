@@ -78,7 +78,7 @@ The device can be controlled by sending a MQTT message to the broker identifying
 ```
 
 ### Multiple LED control
-**Topic:** `warehouse-locator/<deviceId>`\
+**Topic:** `warehouse-locator/<deviceId>/multiple`\
 **Payload:**
 ```json
 [
