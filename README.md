@@ -114,6 +114,7 @@ The device can be controlled by sending a MQTT message to the broker identifying
   }
 ]
 ```
+**Note:** For maintenance purposes the LEDs can be blinked sequentially if the payload is not a JSON object and just set to ```all```
 
 Examples for both modes can be found at the [examples](./examples) folder.
 
