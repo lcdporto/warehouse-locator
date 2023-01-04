@@ -1171,7 +1171,7 @@
   (symbol (lib_id "power:+5V") (at 165.1 127 90) (unit 1)
     (in_bom yes) (on_board yes)
     (uuid 0254aefe-66fc-4322-8d36-d41b0cd7ed4c)
-    (property "Reference" "#PWR?" (id 0) (at 168.91 127 0)
+    (property "Reference" "#PWR019" (id 0) (at 168.91 127 0)
       (effects (font (size 1.27 1.27)) hide)
     )
     (property "Value" "+5V" (id 1) (at 157.48 127 90)
@@ -1207,7 +1207,7 @@
   (symbol (lib_name "GND_2") (lib_id "power:GND") (at 165.1 114.3 270) (unit 1)
     (in_bom yes) (on_board yes) (fields_autoplaced)
     (uuid 0ff64a17-acbe-42e6-b6e4-0d8dd8c401b1)
-    (property "Reference" "#PWR?" (id 0) (at 158.75 114.3 0)
+    (property "Reference" "#PWR018" (id 0) (at 158.75 114.3 0)
       (effects (font (size 1.27 1.27)) hide)
     )
     (property "Value" "GND" (id 1) (at 161.29 114.2999 90)
@@ -1261,7 +1261,7 @@
   (symbol (lib_id "Device:LED") (at 179.07 54.61 90) (unit 1)
     (in_bom yes) (on_board yes) (fields_autoplaced)
     (uuid 1db8de92-1b7e-4ee2-8b02-085abde4cb76)
-    (property "Reference" "D?" (id 0) (at 182.88 54.9274 90)
+    (property "Reference" "D1" (id 0) (at 182.88 54.9274 90)
       (effects (font (size 1.27 1.27)) (justify right))
     )
     (property "Value" "LED" (id 1) (at 182.88 57.4674 90)
@@ -1280,7 +1280,7 @@
   (symbol (lib_name "GND_1") (lib_id "power:GND") (at 238.76 81.28 90) (unit 1)
     (in_bom yes) (on_board yes) (fields_autoplaced)
     (uuid 213ea978-248f-4385-b520-aff4ee3ab8b6)
-    (property "Reference" "#PWR?" (id 0) (at 245.11 81.28 0)
+    (property "Reference" "#PWR022" (id 0) (at 245.11 81.28 0)
       (effects (font (size 1.27 1.27)) hide)
     )
     (property "Value" "GND" (id 1) (at 242.57 81.2799 90)
@@ -1335,7 +1335,7 @@
   (symbol (lib_name "GND_3") (lib_id "power:GND") (at 179.07 58.42 0) (unit 1)
     (in_bom yes) (on_board yes) (fields_autoplaced)
     (uuid 49326297-d7a8-49d2-98aa-68a298420de1)
-    (property "Reference" "#PWR?" (id 0) (at 179.07 64.77 0)
+    (property "Reference" "#PWR021" (id 0) (at 179.07 64.77 0)
       (effects (font (size 1.27 1.27)) hide)
     )
     (property "Value" "GND" (id 1) (at 179.07 63.5 0))
@@ -1667,7 +1667,7 @@
   (symbol (lib_name "GND_1") (lib_id "power:GND") (at 238.76 96.52 90) (unit 1)
     (in_bom yes) (on_board yes) (fields_autoplaced)
     (uuid b6dc58df-5635-4bfb-a0b6-f31ca3e9691d)
-    (property "Reference" "#PWR?" (id 0) (at 245.11 96.52 0)
+    (property "Reference" "#PWR023" (id 0) (at 245.11 96.52 0)
       (effects (font (size 1.27 1.27)) hide)
     )
     (property "Value" "GND" (id 1) (at 242.57 96.5199 90)
@@ -1685,7 +1685,7 @@
   (symbol (lib_id "power:+3.3V") (at 165.1 81.28 90) (unit 1)
     (in_bom yes) (on_board yes) (fields_autoplaced)
     (uuid b8c97f6d-2826-4abe-9a0d-fbf24acc9464)
-    (property "Reference" "#PWR?" (id 0) (at 168.91 81.28 0)
+    (property "Reference" "#PWR017" (id 0) (at 168.91 81.28 0)
       (effects (font (size 1.27 1.27)) hide)
     )
     (property "Value" "+3.3V" (id 1) (at 161.29 81.2799 90)
@@ -1703,7 +1703,7 @@
   (symbol (lib_name "+5V_1") (lib_id "power:+5V") (at 179.07 43.18 0) (unit 1)
     (in_bom yes) (on_board yes) (fields_autoplaced)
     (uuid bbb94cab-5b50-47f4-b8eb-61d575e804ee)
-    (property "Reference" "#PWR?" (id 0) (at 179.07 46.99 0)
+    (property "Reference" "#PWR020" (id 0) (at 179.07 46.99 0)
       (effects (font (size 1.27 1.27)) hide)
     )
     (property "Value" "+5V" (id 1) (at 179.07 38.1 0))
@@ -1777,7 +1777,7 @@
   (symbol (lib_id "Device:R") (at 179.07 46.99 0) (unit 1)
     (in_bom yes) (on_board yes) (fields_autoplaced)
     (uuid cb16680a-c0f0-4315-a6bd-4d57dd5f9f7f)
-    (property "Reference" "R?" (id 0) (at 181.61 45.7199 0)
+    (property "Reference" "R1" (id 0) (at 181.61 45.7199 0)
       (effects (font (size 1.27 1.27)) (justify left))
     )
     (property "Value" "220" (id 1) (at 181.61 48.2599 0)
@@ -1901,29 +1901,29 @@
     (path "/c6e94d68-e716-4c42-b935-ba265a888be2"
       (reference "#PWR016") (unit 1) (value "GND") (footprint "")
     )
-    (path "/0254aefe-66fc-4322-8d36-d41b0cd7ed4c"
-      (reference "#PWR?") (unit 1) (value "+5V") (footprint "")
+    (path "/b8c97f6d-2826-4abe-9a0d-fbf24acc9464"
+      (reference "#PWR017") (unit 1) (value "+3.3V") (footprint "")
     )
     (path "/0ff64a17-acbe-42e6-b6e4-0d8dd8c401b1"
-      (reference "#PWR?") (unit 1) (value "GND") (footprint "")
+      (reference "#PWR018") (unit 1) (value "GND") (footprint "")
     )
-    (path "/213ea978-248f-4385-b520-aff4ee3ab8b6"
-      (reference "#PWR?") (unit 1) (value "GND") (footprint "")
-    )
-    (path "/49326297-d7a8-49d2-98aa-68a298420de1"
-      (reference "#PWR?") (unit 1) (value "GND") (footprint "")
-    )
-    (path "/b6dc58df-5635-4bfb-a0b6-f31ca3e9691d"
-      (reference "#PWR?") (unit 1) (value "GND") (footprint "")
-    )
-    (path "/b8c97f6d-2826-4abe-9a0d-fbf24acc9464"
-      (reference "#PWR?") (unit 1) (value "+3.3V") (footprint "")
+    (path "/0254aefe-66fc-4322-8d36-d41b0cd7ed4c"
+      (reference "#PWR019") (unit 1) (value "+5V") (footprint "")
     )
     (path "/bbb94cab-5b50-47f4-b8eb-61d575e804ee"
-      (reference "#PWR?") (unit 1) (value "+5V") (footprint "")
+      (reference "#PWR020") (unit 1) (value "+5V") (footprint "")
+    )
+    (path "/49326297-d7a8-49d2-98aa-68a298420de1"
+      (reference "#PWR021") (unit 1) (value "GND") (footprint "")
+    )
+    (path "/213ea978-248f-4385-b520-aff4ee3ab8b6"
+      (reference "#PWR022") (unit 1) (value "GND") (footprint "")
+    )
+    (path "/b6dc58df-5635-4bfb-a0b6-f31ca3e9691d"
+      (reference "#PWR023") (unit 1) (value "GND") (footprint "")
     )
     (path "/1db8de92-1b7e-4ee2-8b02-085abde4cb76"
-      (reference "D?") (unit 1) (value "LED") (footprint "LED_THT:LED_D5.0mm")
+      (reference "D1") (unit 1) (value "LED") (footprint "LED_THT:LED_D5.0mm")
     )
     (path "/3f6f5fd4-bf84-4f5a-b527-b698f4821ee8"
       (reference "H1") (unit 1) (value "MountingHole") (footprint "MountingHole:MountingHole_3.2mm_M3_DIN965_Pad")
@@ -1959,7 +1959,7 @@
       (reference "J8") (unit 1) (value "Ethernet") (footprint "Connector_PinSocket_2.54mm:PinSocket_2x05_P2.54mm_Vertical")
     )
     (path "/cb16680a-c0f0-4315-a6bd-4d57dd5f9f7f"
-      (reference "R?") (unit 1) (value "220") (footprint "Resistor_THT:R_Axial_DIN0207_L6.3mm_D2.5mm_P10.16mm_Horizontal")
+      (reference "R1") (unit 1) (value "220") (footprint "Resistor_THT:R_Axial_DIN0207_L6.3mm_D2.5mm_P10.16mm_Horizontal")
     )
     (path "/8a6d48a6-b7bb-4a02-b51b-9f669ac7dca2"
       (reference "U1") (unit 1) (value "ESP32-DevKitC") (footprint "Espressif:ESP32-DevKitC")
