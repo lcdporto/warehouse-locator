@@ -196,7 +196,7 @@ bool mqtt_connect() {
   mqtt.subscribe(topic);
   log_v("Subscribed to topic: %s", topic);
 
-  log_i("Connected to MQTT server: %s:%s", MQTT_SERVER, MQTT_PORT);
+  log_i("Connected to MQTT server: %s:%d", MQTT_SERVER, MQTT_PORT);
 
   return mqtt.connected();
 }
