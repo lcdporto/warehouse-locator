@@ -234,6 +234,7 @@ void setup() {
   Ethernet.begin(mac);
   if (Ethernet.linkStatus() == LinkOFF) {
     log_e("Error initializing Ethernet");
+    esp_restart();
   } else {
     log_d("Ethernet init success, IP: %s", Ethernet.localIP().toString());
   }
