@@ -5,11 +5,15 @@
 #include <SPIFFS.h>
 #include <mutex>
 
-#define LED_STRIP_1_PIN 22
-#define LED_STRIP_2_PIN 17
+#define LED_STRIP_1_PIN 2
+#define LED_STRIP_2_PIN 4
+#define LED_STRIP_3_PIN 16
+#define LED_STRIP_4_PIN 17
+#define LED_STRIP_5_PIN 21
+#define LED_STRIP_6_PIN 22
 
 #define NUM_LEDS 144 * 5
-#define NUM_STRIPS 2
+#define NUM_STRIPS 6
 
 #define CONFIG_FILE_PATH "/config.json"
 #define ID_FILE_PATH "/device-id.txt"
@@ -20,7 +24,7 @@
 
 #define LED_OFF_PAYLOAD "{\"color\":{\"r\": 0,\"g\": 0,\"b\":0}}"
 
-#define MQTT_SERVER "GPereira-Desktop.lan"
+#define MQTT_SERVER "GPereira-Laptop.home"
 #define MQTT_PORT 1883
 #define MQTT_USER "lcd"
 #define MQTT_PASS "lcd"
@@ -215,6 +219,10 @@ void mqtt_announce(void *) {
 void setup() {
   FastLED.addLeds<WS2812, LED_STRIP_1_PIN, GRB>(led_strips[0], NUM_LEDS);
   FastLED.addLeds<WS2812, LED_STRIP_2_PIN, GRB>(led_strips[1], NUM_LEDS);
+  FastLED.addLeds<WS2812, LED_STRIP_3_PIN, GRB>(led_strips[2], NUM_LEDS);
+  FastLED.addLeds<WS2812, LED_STRIP_4_PIN, GRB>(led_strips[3], NUM_LEDS);
+  FastLED.addLeds<WS2812, LED_STRIP_5_PIN, GRB>(led_strips[4], NUM_LEDS);
+  FastLED.addLeds<WS2812, LED_STRIP_6_PIN, GRB>(led_strips[5], NUM_LEDS);
 
   SPIFFS.begin(true);
 
