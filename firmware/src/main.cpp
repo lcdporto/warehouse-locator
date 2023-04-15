@@ -1,3 +1,4 @@
+#include "WiFi.h"
 #include <ArduinoJson.h>
 #include <EthernetENC.h>
 #include <FastLED.h>
@@ -15,6 +16,8 @@
 #define NUM_LEDS 144 * 5
 #define NUM_STRIPS 6
 
+#define LED_INIT_SIZE 10
+
 #define CONFIG_FILE_PATH "/config.json"
 #define ID_FILE_PATH "/device-id.txt"
 
@@ -24,10 +27,16 @@
 
 #define LED_OFF_PAYLOAD "{\"color\":{\"r\": 0,\"g\": 0,\"b\":0}}"
 
-#define MQTT_SERVER "GPereira-Laptop.home"
+#define MQTT_SERVER "test.mosquitto.org"
 #define MQTT_PORT 1883
-#define MQTT_USER "lcd"
-#define MQTT_PASS "lcd"
+#define MQTT_USER "mqtt_user"
+#define MQTT_PASS "mqtt_password"
+
+#define WIFI
+#ifdef WIFI
+#define WiFi_SSID "SSID"
+#define WiFi_PASS "password"
+#endif
 
 byte mac[] = {0xDE, 0xAD, 0xBE, 0xEF, 0xFE, 0xED};
 
@@ -36,8 +45,9 @@ char device_id[11] = "";
 static CRGB led_strips[NUM_STRIPS][NUM_LEDS];
 SemaphoreHandle_t led_mtx = xSemaphoreCreateMutex();
 
-EthernetClient client;
-PubSubClient mqtt(client);
+WiFiClient wifi;
+EthernetClient ethernet;
+PubSubClient mqtt;
 
 typedef struct {
   uint8_t strip;
@@ -216,6 +226,23 @@ void mqtt_announce(void *) {
   }
 }
 
+void LED_init_sequesnce() {
+  xSemaphoreTake(led_mtx, portMAX_DELAY);
+  for (uint16_t j = 0; j < NUM_LEDS; j++) {
+    for (uint8_t i = 0; i < NUM_STRIPS; i++) {
+      led_strips[i][j] = CRGB(255, 255, 255);
+    }
+    if (j - LED_INIT_SIZE >= 0) {
+      for (uint8_t i = 0; i < NUM_STRIPS; i++) {
+        led_strips[i][j - LED_INIT_SIZE] = CRGB(0, 0, 0);
+      }
+      FastLED.show();
+    }
+    log_d("Lighting up LED # %d", j);
+  }
+  xSemaphoreGive(led_mtx);
+}
+
 void setup() {
   FastLED.addLeds<WS2812, LED_STRIP_1_PIN, GRB>(led_strips[0], NUM_LEDS);
   FastLED.addLeds<WS2812, LED_STRIP_2_PIN, GRB>(led_strips[1], NUM_LEDS);
@@ -225,7 +252,6 @@ void setup() {
   FastLED.addLeds<WS2812, LED_STRIP_6_PIN, GRB>(led_strips[5], NUM_LEDS);
 
   SPIFFS.begin(true);
-
   if (SPIFFS.exists(ID_FILE_PATH)) {
     fs::File device_id_file = SPIFFS.open(ID_FILE_PATH, "r");
     device_id_file.readBytes(device_id, 11);
@@ -236,15 +262,27 @@ void setup() {
     device_id_file.print(device_id);
     device_id_file.close();
   }
+
+  LED_init_sequesnce();
+
   log_d("Device ID: %s", device_id);
 
   Ethernet.init(5);
-  Ethernet.begin(mac);
-  if (Ethernet.linkStatus() == LinkOFF) {
+  Ethernet.begin(mac, 15000, 15000);
+  delay(1000);
+  if (Ethernet.linkStatus() == LinkOFF ||
+      Ethernet.localIP() == IPAddress(0, 0, 0, 0)) {
     log_e("Error initializing Ethernet");
-    esp_restart();
+    log_i("Connecting to WiFi");
+    WiFi.begin(WiFi_SSID, WiFi_PASS);
+    while (WiFi.status() != WL_CONNECTED) {
+      log_i(".");
+      delay(1000);
+    }
+    mqtt.setClient(wifi);
   } else {
     log_d("Ethernet init success, IP: %s", Ethernet.localIP().toString());
+    mqtt.setClient(ethernet);
   }
 
   mqtt.setServer(MQTT_SERVER, MQTT_PORT);
