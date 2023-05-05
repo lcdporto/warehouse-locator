@@ -66,9 +66,7 @@ void control_LED(void *led_struct) {
 
   log_d("Turned strip %u led %u on", led.strip, led.led);
   xSemaphoreTake(led_mtx, portMAX_DELAY);
-  delay(1);
   led_strips[led.strip][led.led] = CRGB(led.r, led.g, led.b);
-  delay(1);
   FastLED.show();
   delay(1);
   xSemaphoreGive(led_mtx);
@@ -81,9 +79,7 @@ void control_LED(void *led_struct) {
   vTaskDelay(led.timeout * 1000 / portTICK_PERIOD_MS);
 
   xSemaphoreTake(led_mtx, portMAX_DELAY);
-  delay(1);
   led_strips[led.strip][led.led] = CRGB(0, 0, 0);
-  delay(1);
   FastLED.show();
   delay(1);
   xSemaphoreGive(led_mtx);
@@ -241,7 +237,7 @@ bool mqtt_connect() {
   }
   char topic[64];
   sprintf(topic, "%s%s/+/+", MQTT_TOPIC_PREFIX, device_id);
-  mqtt.subscribe(topic);
+  mqtt.subscribe(topic, 1);
   log_v("Subscribed to topic: %s", topic);
 
   sprintf(topic, "%s%s/init", MQTT_TOPIC_PREFIX, device_id);
@@ -249,7 +245,7 @@ bool mqtt_connect() {
   log_v("Subscribed to topic: %s", topic);
 
   sprintf(topic, "%s%s/multiple", MQTT_TOPIC_PREFIX, device_id);
-  mqtt.subscribe(topic);
+  mqtt.subscribe(topic, 1);
   log_v("Subscribed to topic: %s", topic);
 
   log_i("Connected to MQTT server: %s:%d", MQTT_SERVER, MQTT_PORT);
