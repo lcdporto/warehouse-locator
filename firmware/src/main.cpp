@@ -122,8 +122,8 @@ void LED_init_sequence(uint16_t group_size = 10) {
  */
 void LED_link_state(bool wifi_on, bool ethernet_on) {
   for (uint8_t i = 0; i < NUM_STRIPS; i++) {
-    led_strips[i][0] = ethernet_on ? CRGB(0, 255, 0)
-                       : wifi_on   ? CRGB(0, 0, 255)
+    led_strips[i][0] = ethernet_on ? CRGB(0, 128, 0)
+                       : wifi_on   ? CRGB(0, 0, 128)
                                    : CRGB(0, 0, 0);
   }
   FastLED.show();
