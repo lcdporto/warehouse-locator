@@ -33,7 +33,7 @@
 #define WiFi_SSID "SSID"
 #define WiFi_PASS "password"
 
-#define LINK_REFRESH_INTERVAL 1000 // milliseconds
+#define LINK_REFRESH_INTERVAL 5000 // milliseconds
 
 byte mac[] = {0xDE, 0xAD, 0xBE, 0xEF, 0xFE, 0xED};
 
@@ -310,25 +310,30 @@ void setup() {
   xTaskCreate(mqtt_announce, "announce_ID", 2048, NULL, 1, NULL);
 }
 
+void link_refresh() {
+  if (Ethernet.linkStatus() == LinkON) {
+    // Check if DHCP lease needs to be renewed
+    Ethernet.maintain();
+  }
+
+  if (ethernet_client.connected() && WiFi.status() != WL_CONNECTED) {
+    WiFi.reconnect();
+  }
+
+  if (ethernet_client.connected()) {
+    mqtt.setClient(ethernet_client);
+  } else {
+    mqtt.setClient(wifi_client);
+  }
+
+  LED_link_state(wifi_client.connected(), ethernet_client.connected());
+}
+
 unsigned long last_link_refresh = 0;
 
 void loop() {
   if (millis() - last_link_refresh > LINK_REFRESH_INTERVAL) {
-    // Check if DHCP lease needs to be renewed
-    Ethernet.maintain();
-
-    // Check if WiFI connection needs to be reset
-    if (WiFi.status() != WL_CONNECTED) {
-      WiFi.reconnect();
-    }
-
-    if (ethernet_client.connected()) {
-      mqtt.setClient(ethernet_client);
-    } else {
-      mqtt.setClient(wifi_client);
-    }
-
-    LED_link_state(wifi_client.connected(), ethernet_client.connected());
+    link_refresh();
     last_link_refresh = millis();
   }
 
