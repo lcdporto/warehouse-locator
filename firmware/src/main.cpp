@@ -264,6 +264,28 @@ void mqtt_announce(void *) {
   }
 }
 
+void link_refresh(void *) {
+  while (1) {
+    if (Ethernet.linkStatus() == LinkON) {
+      // Check if DHCP lease needs to be renewed
+      Ethernet.maintain();
+    }
+
+    if (ethernet_client.connected() && WiFi.status() != WL_CONNECTED) {
+      WiFi.reconnect();
+    }
+
+    if (ethernet_client.connected()) {
+      mqtt.setClient(ethernet_client);
+    } else {
+      mqtt.setClient(wifi_client);
+    }
+
+    LED_link_state(wifi_client.connected(), ethernet_client.connected());
+    vTaskDelay(LINK_REFRESH_INTERVAL * 1000 / portTICK_PERIOD_MS);
+  }
+}
+
 void setup() {
   FastLED.addLeds<WS2812, LED_STRIP_1_PIN, GRB>(led_strips[0], NUM_LEDS);
   FastLED.addLeds<WS2812, LED_STRIP_2_PIN, GRB>(led_strips[1], NUM_LEDS);
@@ -308,35 +330,10 @@ void setup() {
   mqtt.setCallback(mqtt_receive);
 
   xTaskCreate(mqtt_announce, "announce_ID", 2048, NULL, 1, NULL);
+  xTaskCreate(link_refresh, "link_refresh", 2048, NULL, 1, NULL);
 }
-
-void link_refresh() {
-  if (Ethernet.linkStatus() == LinkON) {
-    // Check if DHCP lease needs to be renewed
-    Ethernet.maintain();
-  }
-
-  if (ethernet_client.connected() && WiFi.status() != WL_CONNECTED) {
-    WiFi.reconnect();
-  }
-
-  if (ethernet_client.connected()) {
-    mqtt.setClient(ethernet_client);
-  } else {
-    mqtt.setClient(wifi_client);
-  }
-
-  LED_link_state(wifi_client.connected(), ethernet_client.connected());
-}
-
-unsigned long last_link_refresh = 0;
 
 void loop() {
-  if (millis() - last_link_refresh > LINK_REFRESH_INTERVAL) {
-    link_refresh();
-    last_link_refresh = millis();
-  }
-
   if (mqtt_connect()) {
     mqtt.loop();
   }
