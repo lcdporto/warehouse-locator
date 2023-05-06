@@ -184,7 +184,7 @@ void mqtt_receive(char *topic, byte *payload, unsigned int length) {
         xTaskCreate(control_LED, "control_LED", 2048, (void *)&led, 1, NULL);
       }
     }
-  } else if (strcmp(token, "init") == 0) {
+  } else if (strcmp(token, "test") == 0) {
     LED_init_sequence();
   } else {
     uint8_t strip_n;
@@ -240,7 +240,7 @@ bool mqtt_connect() {
   mqtt.subscribe(topic, 1);
   log_v("Subscribed to topic: %s", topic);
 
-  sprintf(topic, "%s%s/init", MQTT_TOPIC_PREFIX, device_id);
+  sprintf(topic, "%s%s/test", MQTT_TOPIC_PREFIX, device_id);
   mqtt.subscribe(topic);
   log_v("Subscribed to topic: %s", topic);
 
