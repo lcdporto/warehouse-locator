@@ -33,7 +33,7 @@
 #define WiFi_SSID "SSID"
 #define WiFi_PASS "password"
 
-#define LINK_STATE_UPDATE_INTERVAL 1000 // milliseconds
+#define LINK_REFRESH_INTERVAL 1000 // milliseconds
 
 byte mac[] = {0xDE, 0xAD, 0xBE, 0xEF, 0xFE, 0xED};
 
@@ -42,8 +42,8 @@ char device_id[11] = "";
 static CRGB led_strips[NUM_STRIPS][NUM_LEDS];
 SemaphoreHandle_t led_mtx = xSemaphoreCreateMutex();
 
-WiFiClient wifi;
-EthernetClient ethernet;
+WiFiClient wifi_client;
+EthernetClient ethernet_client;
 PubSubClient mqtt;
 
 typedef struct {
@@ -292,15 +292,15 @@ void setup() {
   WiFi.begin(WiFi_SSID, WiFi_PASS);
   while (WiFi.status() != WL_CONNECTED) {
     log_i(".");
-    delay(1000);
+    delay(100);
   }
 
   delay(2000);
 
-  if (Ethernet.linkStatus() == LinkOFF) {
-    mqtt.setClient(wifi);
+  if (ethernet_client.connected()) {
+    mqtt.setClient(ethernet_client);
   } else {
-    mqtt.setClient(ethernet);
+    mqtt.setClient(wifi_client);
   }
 
   mqtt.setServer(MQTT_SERVER, MQTT_PORT);
@@ -310,13 +310,10 @@ void setup() {
   xTaskCreate(mqtt_announce, "announce_ID", 2048, NULL, 1, NULL);
 }
 
-unsigned long last_link_state_update = 0;
+unsigned long last_link_refresh = 0;
 
 void loop() {
-  if (millis() - last_link_state_update > LINK_STATE_UPDATE_INTERVAL) {
-    LED_link_state(WiFi.status() == WL_CONNECTED,
-                   Ethernet.linkStatus() == LinkON);
-
+  if (millis() - last_link_refresh > LINK_REFRESH_INTERVAL) {
     // Check if DHCP lease needs to be renewed
     Ethernet.maintain();
 
@@ -325,7 +322,14 @@ void loop() {
       WiFi.reconnect();
     }
 
-    last_link_state_update = millis();
+    if (ethernet_client.connected()) {
+      mqtt.setClient(ethernet_client);
+    } else {
+      mqtt.setClient(wifi_client);
+    }
+
+    LED_link_state(wifi_client.connected(), ethernet_client.connected());
+    last_link_refresh = millis();
   }
 
   if (mqtt_connect()) {
