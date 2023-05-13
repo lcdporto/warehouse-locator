@@ -1,10 +1,8 @@
-#include "WiFi.h"
 #include <ArduinoJson.h>
 #include <EthernetENC.h>
 #include <FastLED.h>
 #include <PubSubClient.h>
 #include <SPIFFS.h>
-#include <mutex>
 
 #define LED_STRIP_1_PIN 2
 #define LED_STRIP_2_PIN 4
@@ -30,21 +28,16 @@
 #define MQTT_USER "mqtt_user"
 #define MQTT_PASS "mqtt_password"
 
-#define WiFi_SSID "SSID"
-#define WiFi_PASS "password"
-
-#define LINK_REFRESH_INTERVAL 5000 // milliseconds
-
-byte mac[] = {0xDE, 0xAD, 0xBE, 0xEF, 0xFE, 0xED};
+byte mac[] = {0x74, 0x69, 0x69, 0x2D, 0x30, 0x31};
 
 char device_id[11] = "";
 
 static CRGB led_strips[NUM_STRIPS][NUM_LEDS];
-SemaphoreHandle_t led_mtx = xSemaphoreCreateMutex();
 
-WiFiClient wifi_client;
 EthernetClient ethernet_client;
-PubSubClient mqtt;
+PubSubClient mqtt(ethernet_client);
+
+static bool test_running = false;
 
 typedef struct {
   uint8_t strip;
@@ -55,9 +48,9 @@ typedef struct {
   uint16_t timeout = 5;
 } led_ctrl;
 
-void control_LED(void *led_struct) {
+void control_LED(void *led_arg) {
   led_ctrl led;
-  memcpy(&led, led_struct, sizeof(led_ctrl));
+  memcpy(&led, led_arg, sizeof(led_ctrl));
 
   char topic[64];
   sprintf(topic, "%s%s/%d/%d/state", MQTT_TOPIC_PREFIX, device_id, led.strip,
@@ -65,11 +58,8 @@ void control_LED(void *led_struct) {
   log_d("Publishing to state topic: %s", topic);
 
   log_d("Turned strip %u led %u on", led.strip, led.led);
-  xSemaphoreTake(led_mtx, portMAX_DELAY);
   led_strips[led.strip][led.led] = CRGB(led.r, led.g, led.b);
   FastLED.show();
-  delay(1);
-  xSemaphoreGive(led_mtx);
 
   char payload[64];
   sprintf(payload, "{\"color\":{\"r\":%u,\"g\":%u,\"b\":%u}}", led.r, led.g,
@@ -78,11 +68,8 @@ void control_LED(void *led_struct) {
 
   vTaskDelay(led.timeout * 1000 / portTICK_PERIOD_MS);
 
-  xSemaphoreTake(led_mtx, portMAX_DELAY);
   led_strips[led.strip][led.led] = CRGB(0, 0, 0);
   FastLED.show();
-  delay(1);
-  xSemaphoreGive(led_mtx);
 
   mqtt.publish(topic, LED_OFF_PAYLOAD, true);
   log_d("Turned strip %u led %u off", led.strip, led.led);
@@ -95,8 +82,8 @@ void control_LED(void *led_struct) {
  *
  * @param group_size number of LEDs to be lit at each time
  */
-void LED_init_sequence(uint16_t group_size = 10) {
-  xSemaphoreTake(led_mtx, portMAX_DELAY);
+void LED_init_sequence(uint16_t group_size = 3) {
+  test_running = true;
   for (uint16_t j = 0; j < NUM_LEDS; j++) {
     for (uint8_t i = 0; i < NUM_STRIPS; i++) {
       led_strips[i][j] = CRGB(255, 255, 255);
@@ -105,28 +92,29 @@ void LED_init_sequence(uint16_t group_size = 10) {
       for (uint8_t i = 0; i < NUM_STRIPS; i++) {
         led_strips[i][j - group_size] = CRGB(0, 0, 0);
       }
-      FastLED.show();
     }
+      FastLED.show();
     log_d("Lighting up LED # %d", j);
   }
-  xSemaphoreGive(led_mtx);
+  test_running = false;
 }
 
 /**
  * @brief Sets the first LED of all LED strips to signal the link status.
  * It turns green if a Ethernet connection is active, blue if Ethernet is not
  * available and WiFi is available otherwise the LEDs are off
- *
- * @param wifi_on state of WiFi connection
- * @param ethernet_on state of Ethernet connection
  */
-void LED_link_state(bool wifi_on, bool ethernet_on) {
+void LED_link_state(void *) {
+  while (1) {
   for (uint8_t i = 0; i < NUM_STRIPS; i++) {
-    led_strips[i][0] = ethernet_on ? CRGB(0, 128, 0)
-                       : wifi_on   ? CRGB(0, 0, 128)
+      led_strips[i][0] =
+          Ethernet.linkStatus() == LinkON && !test_running
+              ? mqtt.connected() ? CRGB(0, 64, 0) : CRGB(0, 0, 64)
                                    : CRGB(0, 0, 0);
   }
   FastLED.show();
+    vTaskDelay(2 * 1000 / portTICK_PERIOD_MS);
+  }
 }
 
 void mqtt_receive(char *topic, byte *payload, unsigned int length) {
@@ -140,23 +128,7 @@ void mqtt_receive(char *topic, byte *payload, unsigned int length) {
   char *token = strtok(topic, "/");
   if (strcmp(token, "multiple") == 0) {
 
-    if (strcmp((char *)payload, "all") == 0) {
-      for (uint16_t j = 0; j < NUM_LEDS; j++) {
-        for (uint8_t i = 0; i < NUM_STRIPS; i++) {
-          led_ctrl led;
-          led.strip = i;
-          led.led = j;
-          led.r = 255;
-          led.g = 255;
-          led.b = 255;
-          led.timeout = 1;
-
-          xTaskCreate(control_LED, "control_LED", 2048, (void *)&led, 1, NULL);
-        }
-        delay(1000);
-      }
-    } else {
-      DynamicJsonDocument doc(length * 2);
+    DynamicJsonDocument doc(1024);
       if (deserializeJson(doc, (char *)payload)) {
         log_e("Received invalid JSON");
         return;
@@ -182,7 +154,6 @@ void mqtt_receive(char *topic, byte *payload, unsigned int length) {
         led.timeout = timeout;
 
         xTaskCreate(control_LED, "control_LED", 2048, (void *)&led, 1, NULL);
-      }
     }
   } else if (strcmp(token, "test") == 0) {
     LED_init_sequence();
@@ -195,12 +166,13 @@ void mqtt_receive(char *topic, byte *payload, unsigned int length) {
 
     log_d("Addressed strip %u and led %u", strip_n, led_n);
 
-    DynamicJsonDocument doc(length * 2);
+    DynamicJsonDocument doc(1024);
     if (deserializeJson(doc, (char *)payload)) {
       log_e("Received invalid JSON");
       return;
     }
     log_d("Deserialized JSON successfully");
+    log_d("Doc has size: %d", doc.size());
 
     uint16_t timeout;
     if (doc.containsKey("timeout")) {
@@ -223,7 +195,6 @@ void mqtt_receive(char *topic, byte *payload, unsigned int length) {
 
     xTaskCreate(control_LED, "control_LED", 2048, (void *)&led, 1, NULL);
   }
-  delay(1);
 }
 
 bool mqtt_connect() {
@@ -264,28 +235,6 @@ void mqtt_announce(void *) {
   }
 }
 
-void link_refresh(void *) {
-  while (1) {
-    if (Ethernet.linkStatus() == LinkON) {
-      // Check if DHCP lease needs to be renewed
-      Ethernet.maintain();
-    }
-
-    if (ethernet_client.connected() && WiFi.status() != WL_CONNECTED) {
-      WiFi.reconnect();
-    }
-
-    if (ethernet_client.connected()) {
-      mqtt.setClient(ethernet_client);
-    } else {
-      mqtt.setClient(wifi_client);
-    }
-
-    LED_link_state(wifi_client.connected(), ethernet_client.connected());
-    vTaskDelay(LINK_REFRESH_INTERVAL * 1000 / portTICK_PERIOD_MS);
-  }
-}
-
 void setup() {
   FastLED.addLeds<WS2812, LED_STRIP_1_PIN, GRB>(led_strips[0], NUM_LEDS);
   FastLED.addLeds<WS2812, LED_STRIP_2_PIN, GRB>(led_strips[1], NUM_LEDS);
@@ -293,6 +242,13 @@ void setup() {
   FastLED.addLeds<WS2812, LED_STRIP_4_PIN, GRB>(led_strips[3], NUM_LEDS);
   FastLED.addLeds<WS2812, LED_STRIP_5_PIN, GRB>(led_strips[4], NUM_LEDS);
   FastLED.addLeds<WS2812, LED_STRIP_6_PIN, GRB>(led_strips[5], NUM_LEDS);
+
+  for (uint16_t j = 0; j < NUM_LEDS; j++) {
+    for (uint8_t i = 0; i < NUM_STRIPS; i++) {
+      led_strips[i][j] = CRGB(0, 0, 0);
+    }
+  }
+  FastLED.show();
 
   SPIFFS.begin(true);
   if (SPIFFS.exists(ID_FILE_PATH)) {
@@ -310,27 +266,19 @@ void setup() {
 
   Ethernet.init(5);
   Ethernet.begin(mac);
+  delay(1500);
 
-  WiFi.begin(WiFi_SSID, WiFi_PASS);
-  while (WiFi.status() != WL_CONNECTED) {
-    log_i(".");
-    delay(100);
-  }
-
-  delay(2000);
-
-  if (ethernet_client.connected()) {
-    mqtt.setClient(ethernet_client);
-  } else {
-    mqtt.setClient(wifi_client);
-  }
-
+  log_d("Configuring MQTT server");
   mqtt.setServer(MQTT_SERVER, MQTT_PORT);
 
+  log_d("Configuring MQTT callback");
   mqtt.setCallback(mqtt_receive);
 
+  log_d("Setting up keep alive MQTT message");
   xTaskCreate(mqtt_announce, "announce_ID", 2048, NULL, 1, NULL);
-  xTaskCreate(link_refresh, "link_refresh", 2048, NULL, 1, NULL);
+
+  log_d("Setting up status LED");
+  xTaskCreate(LED_link_state, "link_state", 2048, NULL, 1, NULL);
 }
 
 void loop() {
