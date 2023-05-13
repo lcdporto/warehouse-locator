@@ -28,7 +28,7 @@
 #define MQTT_USER "mqtt_user"
 #define MQTT_PASS "mqtt_password"
 
-byte mac[] = {0x74, 0x69, 0x69, 0x2D, 0x30, 0x31};
+byte mac[] = {0xDE, 0xAD, 0xBE, 0xEF, 0xFE, 0xED};  // CHANGE THIS
 
 char device_id[11] = "";
 
@@ -166,7 +166,7 @@ void mqtt_receive(char *topic, byte *payload, unsigned int length) {
 
     log_d("Addressed strip %u and led %u", strip_n, led_n);
 
-    DynamicJsonDocument doc(1024);
+    DynamicJsonDocument doc(128);
     if (deserializeJson(doc, (char *)payload)) {
       log_e("Received invalid JSON");
       return;
@@ -264,6 +264,9 @@ void setup() {
 
   log_d("Device ID: %s", device_id);
 
+  char mac_s[20];
+  sprintf(mac_s, "%x:%x:%x:%x:%x:%x", mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
+  log_i("Connecting with mac address: %s", mac_s);
   Ethernet.init(5);
   Ethernet.begin(mac);
   delay(1500);
