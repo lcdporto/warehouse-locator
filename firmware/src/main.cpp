@@ -3,6 +3,7 @@
 #include <FastLED.h>
 #include <PubSubClient.h>
 #include <SPIFFS.h>
+#include <WiFi.h>
 
 #define LED_STRIP_1_PIN 2
 #define LED_STRIP_2_PIN 4
@@ -27,8 +28,6 @@
 #define MQTT_PORT 1883
 #define MQTT_USER "mqtt_user"
 #define MQTT_PASS "mqtt_password"
-
-byte mac[] = {0xDE, 0xAD, 0xBE, 0xEF, 0xFE, 0xED};  // CHANGE THIS
 
 char device_id[11] = "";
 
@@ -262,14 +261,14 @@ void setup() {
     device_id_file.close();
   }
 
-  log_d("Device ID: %s", device_id);
+  log_i("Device ID: %s", device_id);
 
-  char mac_s[20];
-  sprintf(mac_s, "%x:%x:%x:%x:%x:%x", mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
-  log_i("Connecting with mac address: %s", mac_s);
   Ethernet.init(5);
+  uint8_t mac[6];
+  WiFi.macAddress(mac);
   Ethernet.begin(mac);
   delay(1500);
+  log_i("Connecting with mac address: %s", WiFi.macAddress().c_str());
 
   log_d("Configuring MQTT server");
   mqtt.setServer(MQTT_SERVER, MQTT_PORT);
