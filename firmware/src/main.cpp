@@ -40,38 +40,50 @@ static bool test_running = false;
 
 typedef struct {
   uint8_t strip;
-  uint16_t led;
+  uint16_t led[128];
+  uint8_t n_leds;
   uint8_t r = 255;
   uint8_t g = 255;
   uint8_t b = 255;
   uint16_t timeout = 5;
 } led_ctrl;
 
-void control_LED(void *led_arg) {
+void control_LEDs(void *led_arg) {
   led_ctrl led;
   memcpy(&led, led_arg, sizeof(led_ctrl));
 
-  char topic[64];
-  sprintf(topic, "%s%s/%d/%d/state", MQTT_TOPIC_PREFIX, device_id, led.strip,
-          led.led);
-  log_d("Publishing to state topic: %s", topic);
-
-  log_d("Turned strip %u led %u on", led.strip, led.led);
-  led_strips[led.strip][led.led] = CRGB(led.r, led.g, led.b);
+  for (uint i = 0; i < led.n_leds; i++) {
+    led_strips[led.strip][led.led[i]] = CRGB(led.r, led.g, led.b);
+  }
   FastLED.show();
 
+  for (uint i = 0; i < led.n_leds; i++) {
+  char topic[64];
   char payload[64];
+    sprintf(topic, "%s%s/%d/%d/state", MQTT_TOPIC_PREFIX, device_id, led.strip,
+            led.led[i]);
   sprintf(payload, "{\"color\":{\"r\":%u,\"g\":%u,\"b\":%u}}", led.r, led.g,
           led.b);
+    log_d("Publishing to state topic: %s", topic);
   mqtt.publish(topic, payload, true);
+  }
 
-  vTaskDelay(led.timeout * 1000 / portTICK_PERIOD_MS);
+  vTaskDelay((led.timeout * 1000) / portTICK_PERIOD_MS);
 
-  led_strips[led.strip][led.led] = CRGB(0, 0, 0);
+  for (uint i = 0; i < led.n_leds; i++) {
+    led_strips[led.strip][led.led[i]] = CRGB(0, 0, 0);
+  }
   FastLED.show();
 
-  mqtt.publish(topic, LED_OFF_PAYLOAD, true);
   log_d("Turned strip %u led %u off", led.strip, led.led);
+  for (uint i = 0; i < led.n_leds; i++) {
+    char topic[64];
+    sprintf(topic, "%s%s/%d/%d/state", MQTT_TOPIC_PREFIX, device_id, led.strip,
+            led.led[i]);
+    sprintf(topic, "%s%s/%d/%d/state", MQTT_TOPIC_PREFIX, device_id, led.strip,
+            led.led[i]);
+    mqtt.publish(topic, LED_OFF_PAYLOAD, true);
+  }
 
   vTaskDelete(NULL);
 }
@@ -127,7 +139,7 @@ void mqtt_receive(char *topic, byte *payload, unsigned int length) {
   char *token = strtok(topic, "/");
   if (strcmp(token, "multiple") == 0) {
 
-    DynamicJsonDocument doc(1024);
+    DynamicJsonDocument doc(2048);
       if (deserializeJson(doc, (char *)payload)) {
         log_e("Received invalid JSON");
         return;
@@ -144,15 +156,21 @@ void mqtt_receive(char *topic, byte *payload, unsigned int length) {
           timeout = 5;
         }
 
-        led_ctrl led;
-        led.strip = doc[i]["strip"];
-        led.led = doc[i]["led"];
-        led.r = doc[i]["color"]["r"];
-        led.g = doc[i]["color"]["g"];
-        led.b = doc[i]["color"]["b"];
-        led.timeout = timeout;
+      log_d("Received command to control %d LEDs", doc["leds"].size());
 
-        xTaskCreate(control_LED, "control_LED", 2048, (void *)&led, 1, NULL);
+      led_ctrl led_c;
+      led_c.strip = doc["strip"];
+      for (uint8_t i = 0; i < (uint16_t)doc["to"] - (uint16_t)doc["from"] + 1;
+           i++) {
+        led_c.led[i] = (uint16_t)doc["from"] + i;
+      }
+      led_c.n_leds = (uint8_t)doc["to"] - (uint8_t)doc["from"] + 1;
+      led_c.r = doc["color"]["r"];
+      led_c.g = doc["color"]["g"];
+      led_c.b = doc["color"]["b"];
+      led_c.timeout = timeout;
+
+      xTaskCreate(control_LEDs, "control_LEDs", 4096, &led_c, 1, NULL);
     }
   } else if (strcmp(token, "test") == 0) {
     LED_init_sequence();
@@ -180,19 +198,16 @@ void mqtt_receive(char *topic, byte *payload, unsigned int length) {
       timeout = 5;
     }
 
-    led_ctrl led;
-    led.strip = strip_n;
-    led.led = led_n;
-    led.r = doc["color"]["r"];
-    led.g = doc["color"]["g"];
-    led.b = doc["color"]["b"];
-    led.timeout = timeout;
+    led_ctrl led_c;
+    led_c.strip = strip_n;
+    led_c.led[0] = led_n;
+    led_c.n_leds = 1;
+    led_c.r = doc["color"]["r"];
+    led_c.g = doc["color"]["g"];
+    led_c.b = doc["color"]["b"];
+    led_c.timeout = timeout;
 
-    log_d(
-        "Will turn on the strip %u led %u with color (%u,%u,%u) for %u seconds",
-        led.strip, led.led, led.r, led.g, led.b, led.timeout);
-
-    xTaskCreate(control_LED, "control_LED", 2048, (void *)&led, 1, NULL);
+    xTaskCreate(control_LEDs, "control_LEDs", 4096, &led_c, 1, NULL);
   }
 }
 
@@ -242,8 +257,8 @@ void setup() {
   FastLED.addLeds<WS2812, LED_STRIP_5_PIN, GRB>(led_strips[4], NUM_LEDS);
   FastLED.addLeds<WS2812, LED_STRIP_6_PIN, GRB>(led_strips[5], NUM_LEDS);
 
-  for (uint16_t j = 0; j < NUM_LEDS; j++) {
     for (uint8_t i = 0; i < NUM_STRIPS; i++) {
+    for (uint16_t j = 0; j < NUM_LEDS; j++) {
       led_strips[i][j] = CRGB(0, 0, 0);
     }
   }
