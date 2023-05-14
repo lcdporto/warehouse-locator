@@ -58,33 +58,13 @@ void control_LEDs(void *led_arg) {
   }
   FastLED.show();
 
-  for (uint i = 0; i < led.n_leds; i++) {
-  char topic[64];
-  char payload[64];
-    sprintf(topic, "%s%s/%d/%d/state", MQTT_TOPIC_PREFIX, device_id, led.strip,
-            led.led[i]);
-  sprintf(payload, "{\"color\":{\"r\":%u,\"g\":%u,\"b\":%u}}", led.r, led.g,
-          led.b);
-    log_d("Publishing to state topic: %s", topic);
-  mqtt.publish(topic, payload, true);
-  }
-
   vTaskDelay((led.timeout * 1000) / portTICK_PERIOD_MS);
-
   for (uint i = 0; i < led.n_leds; i++) {
     led_strips[led.strip][led.led[i]] = CRGB(0, 0, 0);
   }
   FastLED.show();
 
   log_d("Turned strip %u led %u off", led.strip, led.led);
-  for (uint i = 0; i < led.n_leds; i++) {
-    char topic[64];
-    sprintf(topic, "%s%s/%d/%d/state", MQTT_TOPIC_PREFIX, device_id, led.strip,
-            led.led[i]);
-    sprintf(topic, "%s%s/%d/%d/state", MQTT_TOPIC_PREFIX, device_id, led.strip,
-            led.led[i]);
-    mqtt.publish(topic, LED_OFF_PAYLOAD, true);
-  }
 
   vTaskDelete(NULL);
 }
