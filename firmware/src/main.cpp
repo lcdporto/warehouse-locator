@@ -1,6 +1,7 @@
 #include <ArduinoJson.h>
 #include <EthernetENC.h>
 #include <FastLED.h>
+#define MQTT_MAX_PACKET_SIZE 2048
 #include <PubSubClient.h>
 #include <SPIFFS.h>
 #include <WiFi.h>
