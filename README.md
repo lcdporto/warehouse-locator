@@ -81,55 +81,18 @@ The device can be controlled by sending a MQTT message to the broker identifying
 **Topic:** `warehouse-locator/<deviceId>/multiple`\
 **Payload:**
 ```json
-[
-  {
-    "strip": 3,
-    "led": 2,
-    "color": {
-      "r": 255,
-      "g": 0,
-      "b": 0
-    },
-    "timeout": 5
+{
+  "strip": 3,
+  "from": 1,
+  "to": 4,
+  "color": {
+    "r": 255,
+    "g": 255,
+    "b": 255
   },
-  {
-    "strip": 5,
-    "led": 48,
-    "color": {
-      "r": 0,
-      "g": 255,
-      "b": 0
-    },
-    "timeout": 5
-  },
-  {
-    "strip": 5,
-    "led": 48,
-    "color": {
-      "r": 0,
-      "g": 0,
-      "b": 255
-    },
-    "timeout": 5
-  }
-]
+  "timeout": 5
+}
 ```
 **Note:** For maintenance purposes the LEDs can be blinked sequentially if the payload is not a JSON object and just set to ```all```
 
 Examples for both modes can be found at the [examples](./examples) folder.
-
-## Read LED states
-
-The device publishes state information  to MQTT (retain flag set) whenever a LED changes its state.
-
-**Topic:** `warehouse-locator/<deviceId>/<strip-id>/<led-id>/state`\
-**Payload:**
-```json
-{
-  "color": {
-    "r": 0,
-    "g": 255,
-    "b": 0
-  },
-}
-```
