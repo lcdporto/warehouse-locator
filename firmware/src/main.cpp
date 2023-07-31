@@ -41,6 +41,8 @@ static bool test_running = false;
 
 char connection_state[64] = "";
 
+static uint8_t leds_on = 0;
+
 typedef struct {
   uint8_t strip;
   uint16_t led[128];
@@ -55,14 +57,21 @@ void control_LEDs(void *led_arg) {
   led_ctrl led;
   memcpy(&led, led_arg, sizeof(led_ctrl));
 
-  for (uint i = 0; i < led.n_leds; i++) {
+  if (led.n_leds + leds_on > 128) {
+    vTaskDelete(NULL);
+    return;
+  }
+
+  for (uint8_t i = 0; i < led.n_leds; i++) {
     led_strips[led.strip][led.led[i]] = CRGB(led.r, led.g, led.b);
+    leds_on++;
   }
   FastLED.show();
 
   vTaskDelay((led.timeout * 1000) / portTICK_PERIOD_MS);
-  for (uint i = 0; i < led.n_leds; i++) {
+  for (uint8_t i = 0; i < led.n_leds; i++) {
     led_strips[led.strip][led.led[i]] = CRGB(0, 0, 0);
+    leds_on--;
   }
   FastLED.show();
 
@@ -112,11 +121,9 @@ void mqtt_receive(char *topic, byte *payload, unsigned int length) {
       log_d("Deserialized JSON successfully");
       log_d("Doc has size: %d", doc.size());
 
-      for (uint8_t i = 0; i < doc.size(); i++) {
-
         uint16_t timeout;
-        if (doc[i].containsKey("timeout")) {
-          timeout = doc[i]["timeout"];
+    if (doc.containsKey("timeout")) {
+      timeout = doc["timeout"];
         } else {
           timeout = 5;
         }
@@ -125,18 +132,18 @@ void mqtt_receive(char *topic, byte *payload, unsigned int length) {
 
       led_ctrl led_c;
       led_c.strip = doc["strip"];
-      for (uint8_t i = 0; i < (uint16_t)doc["to"] - (uint16_t)doc["from"] + 1;
-           i++) {
-        led_c.led[i] = (uint16_t)doc["from"] + i;
+    uint16_t nleds = doc["to"].as<uint16_t>() - doc["from"].as<uint16_t>() + 1;
+    nleds = nleds > 128 ? 128 : nleds;
+    for (uint8_t i = 0; i < nleds; i++) {
+      led_c.led[i] = doc["from"].as<uint16_t>() + i;
       }
-      led_c.n_leds = (uint8_t)doc["to"] - (uint8_t)doc["from"] + 1;
+    led_c.n_leds = nleds;
       led_c.r = doc["color"]["r"];
       led_c.g = doc["color"]["g"];
       led_c.b = doc["color"]["b"];
       led_c.timeout = timeout;
 
       xTaskCreate(control_LEDs, "control_LEDs", 4096, &led_c, 1, NULL);
-    }
   } else if (strcmp(token, "test") == 0) {
     LED_init_sequence();
   } else {
@@ -259,7 +266,7 @@ void setup() {
         ESP.restart();
       }
   log_i("%s", connection_state);
-  if(strcmp(Ethernet.localIP().toString().c_str(), "0.0.0.0") == 0){
+  if (strcmp(Ethernet.localIP().toString().c_str(), "0.0.0.0") == 0) {
     delay(5000);
     ESP.restart();
   }
