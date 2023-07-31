@@ -35,8 +35,7 @@ char device_id[11] = "";
 static CRGB led_strips[NUM_STRIPS][NUM_LEDS];
 
 EthernetClient ethernet_client;
-WiFiClient wifi_client;
-PubSubClient mqtt;
+PubSubClient mqtt(ethernet_client);
 
 static bool test_running = false;
 
@@ -253,61 +252,18 @@ void setup() {
   Ethernet.begin(mac);
 
   if (Ethernet.linkStatus() == LinkON) {
-    mqtt.setClient(ethernet_client);
     sprintf(connection_state, "Ethernet: %s",
             Ethernet.localIP().toString().c_str());
   } else {
-
-    for (uint8_t i = 0; i < 5; i++) {
-      for (uint16_t j = 0; j < NUM_STRIPS; j++) {
-        led_strips[j][0] = CRGB(64, 0, 0);
-      }
-      FastLED.show();
-
-      delay(500);
-
-      for (uint16_t j = 0; j < NUM_STRIPS; j++) {
-        led_strips[j][0] = CRGB(0, 0, 0);
-      }
-      FastLED.show();
-
-      delay(500);
-    }
-
-    log_i("Connecting via WiFi");
-    for (uint16_t j = 0; j < NUM_STRIPS; j++) {
-      led_strips[j][0] = CRGB(64, 0, 0);
-    }
-    FastLED.show();
-    WiFi.mode(WIFI_STA);
-    WiFi.begin(WIFI_SSID, WIFI_PASS);
-
-    uint8_t try_time = 0;
-    while (WiFi.status() != WL_CONNECTED) {
-      delay(1000);
-      if (try_time >= 60) {
-        for (uint8_t i = 0; i < 5; i++) {
-          for (uint16_t j = 0; j < NUM_STRIPS; j++) {
-            led_strips[j][0] = CRGB(64, 0, 0);
-          }
-          FastLED.show();
-
-          delay(500);
-
-          for (uint16_t j = 0; j < NUM_STRIPS; j++) {
-            led_strips[j][0] = CRGB(0, 0, 0);
-          }
-          FastLED.show();
-
-          delay(500);
-        }
+    delay(5000);
         ESP.restart();
       }
-      try_time++;
-    }
-    mqtt.setClient(wifi_client);
-    sprintf(connection_state, "WiFi: %s", WiFi.localIP().toString().c_str());
+  log_i("%s", connection_state);
+  if(strcmp(Ethernet.localIP().toString().c_str(), "0.0.0.0") == 0){
+    delay(5000);
+    ESP.restart();
   }
+  log_i("%s", connection_state);
 
   for (uint16_t i = 0; i < NUM_STRIPS; i++) {
     led_strips[i][0] = CRGB(0, 64, 0);
