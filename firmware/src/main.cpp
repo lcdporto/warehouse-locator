@@ -122,10 +122,12 @@ void mqtt_receive(char *topic, byte *payload, unsigned int length) {
 
     led_ctrl led_c;
     led_c.strip = doc["strip"];
-    uint16_t nleds = doc["to"].as<uint16_t>() - doc["from"].as<uint16_t>() + 1;
+    uint16_t from_led = doc["from"].as<uint16_t>();
+    uint16_t to_led = doc["to"].as<uint16_t>();
+    uint16_t nleds = to_led - from_led + 1;
     nleds = nleds > 128 ? 128 : nleds;
     for (uint8_t i = 0; i < nleds; i++) {
-      led_c.led[i] = doc["from"].as<uint16_t>() + i;
+      led_c.led[i] = from_led + i;
     }
     led_c.n_leds = nleds;
     led_c.r = doc["color"]["r"];
