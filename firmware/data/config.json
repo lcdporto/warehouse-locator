@@ -1,6 +1,0 @@
-{
-    "mqtt_server": "address",
-    "mqtt_port": "1883",
-    "mqtt_user": "user",
-    "mqtt_pass": "password"
-}
