@@ -1,5 +1,5 @@
 #include <ArduinoJson.h>
-#include <EthernetENC.h>
+// #include <EthernetENC.h>
 #include <FastLED.h>
 #define MQTT_MAX_PACKET_SIZE 2048
 #include <PubSubClient.h>
@@ -27,15 +27,19 @@
 
 #define MQTT_SERVER "test.mosquitto.org"
 #define MQTT_PORT 1883
-#define MQTT_USER "mqtt_user"
-#define MQTT_PASS "mqtt_password"
+#define MQTT_USER "user"
+#define MQTT_PASS "pass"
+
+#define WiFi_SSID "SSID"
+#define WiFi_PASS "PASS"
 
 char device_id[11] = "";
 
 static CRGB led_strips[NUM_STRIPS][NUM_LEDS];
 
-EthernetClient ethernet_client;
-PubSubClient mqtt(ethernet_client);
+// EthernetClient ethernet_client;
+WiFiClient wifi_client;
+PubSubClient mqtt(wifi_client);
 
 static bool test_running = false;
 
@@ -244,7 +248,7 @@ void setup() {
   }
 
   log_i("Device ID: %s", device_id);
-
+  /*
   Ethernet.init(5);
   uint8_t mac[6];
   WiFi.macAddress(mac);
@@ -263,6 +267,15 @@ void setup() {
     ESP.restart();
   }
   log_i("%s", connection_state);
+    */
+
+  WiFi.mode(WIFI_STA);
+  WiFi.begin(WiFi_SSID, WiFi_PASS);
+  while (WiFi.status() != WL_CONNECTED) {
+    delay(100);
+  }
+  sprintf(connection_state, "WiFi: %s",
+              WiFi.localIP().toString().c_str());
 
   for (uint16_t i = 0; i < NUM_STRIPS; i++) {
     led_strips[i][0] = CRGB(0, 64, 0);
